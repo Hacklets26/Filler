@@ -1,0 +1,28 @@
+import os
+from pathlib import Path
+from typing import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "gittok.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DATABASE_PATH.as_posix()}")
+
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+def get_db() -> Generator[Session, None, None]:
+    database = SessionLocal()
+    try:
+        yield database
+    finally:
+        database.close()
