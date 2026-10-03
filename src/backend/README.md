@@ -22,7 +22,7 @@ Run the provided entry point from the repository root:
 python src/backend/app.py
 ```
 
-The server listens on `http://localhost:8000`. The launcher finds the backend
+The server listens on `http://localhost:30007`. The launcher finds the backend
 package relative to its own file, so the project layout (including
 `src/backend/main.py`, the router modules, and the other backend modules) must be
 available when starting it. Running an isolated copy of `app.py` without those
@@ -35,8 +35,8 @@ uvicorn src.backend.main:app --reload
 ```
 
 Interactive API documentation is available at
-[`http://localhost:8000/docs`](http://localhost:8000/docs); the OpenAPI schema
-is at [`http://localhost:8000/openapi.json`](http://localhost:8000/openapi.json).
+[`http://localhost:30007/docs`](http://localhost:30007/docs); the OpenAPI schema
+is at [`http://localhost:30007/openapi.json`](http://localhost:30007/openapi.json).
 
 ## Configuration and storage
 
@@ -59,7 +59,7 @@ is at [`http://localhost:8000/openapi.json`](http://localhost:8000/openapi.json)
 ## API
 
 All request and response bodies are JSON unless noted otherwise. Replace
-`localhost:8000` with the deployed service URL when calling a remote server.
+`localhost:30007` with the deployed service URL when calling a remote server.
 
 ### Developers
 
@@ -102,7 +102,7 @@ Content-Type: application/json
 {
   "title": "Data Garden",
   "repo_url": "https://github.com/example/data-garden",
-  "video_url": "http://localhost:8000/videos/your-upload.mp4",
+  "video_url": "http://localhost:30007/videos/your-upload.mp4",
   "needs": {"python": 3, "sql": 1},
   "tags": ["data", "open source"],
   "maintainer_id": 1
@@ -121,13 +121,13 @@ Send a multipart form upload with the field name `file`. Only filenames ending
 in `.mp4` are accepted.
 
 ```bash
-curl -F "file=@pitch.mp4" http://localhost:8000/upload_video
+curl -F "file=@pitch.mp4" http://localhost:30007/upload_video
 ```
 
 The response contains a public `video_url`, for example:
 
 ```json
-{"video_url": "http://localhost:8000/videos/2d9e...c31.mp4"}
+{"video_url": "http://localhost:30007/videos/2d9e...c31.mp4"}
 ```
 
 Use that URL as `video_url` when creating the project. The video can then be
