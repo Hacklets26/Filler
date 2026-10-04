@@ -1,6 +1,6 @@
 "use strict";
 // ---------- Config ----------
-const API_BASE = "https://backend.hunger.net";
+const API_BASE = "https://backend.ifamished.com";
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const STORE_KEY = "patchwork.developerId";
 const LEVELS = [1, 2, 3, 4, 5];
