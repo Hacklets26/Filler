@@ -8,6 +8,7 @@ import Profile from "./pages/Profile";
 import { Login, AuthCallback } from "./pages/Login";
 import { ThemeToggle } from "./theme";
 
+// Protected shell: any route inside this layout requires an authenticated developer.
 function Shell() {
   const { me, ready, signOut } = useAuth();
   if (!ready) return <p className="empty page">Loading…</p>;
@@ -36,6 +37,7 @@ function Shell() {
 }
 
 export default function App() {
+  // Public auth screens are separate from the rest of the app so the real UI can stay behind one guard.
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { Skills } from "./api";
 
+// Consistent skill levels and lowercase tags keep values stable before they are saved.
 const LEVELS = [1, 2, 3, 4, 5];
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -16,6 +17,7 @@ export function Chip({ children, shared, onRemove }: { children: ReactNode; shar
 export function SkillEditor({ label, value, onChange, placeholder }: {
   label: string; value: Skills; onChange: (s: Skills) => void; placeholder: string;
 }) {
+  // Local draft state keeps the form responsive without forcing the parent to re-render on every keystroke.
   const [name, setName] = useState("");
   const [level, setLevel] = useState(3);
   const add = () => { const n = norm(name); if (n) { onChange({ ...value, [n]: level }); setName(""); } };
@@ -42,6 +44,7 @@ export function SkillEditor({ label, value, onChange, placeholder }: {
 export function TagEditor({ label, value, onChange, placeholder }: {
   label: string; value: string[]; onChange: (t: string[]) => void; placeholder: string;
 }) {
+  // Tags are kept as a normalized list so we avoid duplicates and inconsistent casing in saved profiles.
   const [text, setText] = useState("");
   const add = () => { const n = norm(text); if (n && !value.includes(n)) onChange([...value, n]); setText(""); };
   return (
@@ -57,7 +60,7 @@ export function TagEditor({ label, value, onChange, placeholder }: {
   );
 }
 
-/** Bars make the available ranking signals transparent. */
+/** The meter makes each ranking signal easy to scan in a single glance. */
 export function Meter({ skill, interest, text }: {
   skill: number | null; interest: number | null; text: number | null;
 }) {

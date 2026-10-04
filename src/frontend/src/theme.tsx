@@ -7,6 +7,7 @@ interface ThemeContextValue {
 }
 
 const STORAGE_KEY = "patchwork.theme";
+// Theme state is shared across the app so the UI can stay consistent without plumbing props everywhere.
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function initialTheme(): Theme {
@@ -23,6 +24,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(initialTheme);
 
   useEffect(() => {
+    // Keep the DOM theme and saved preference in sync so the page reflects the current choice immediately.
     document.documentElement.dataset.theme = theme;
     try {
       window.localStorage.setItem(STORAGE_KEY, theme);
