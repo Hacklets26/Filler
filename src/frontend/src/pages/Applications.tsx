@@ -55,7 +55,7 @@ export default function Applications() {
       <Notice error={error} info={info} />
 
       <section className="application-section">
-        <div className="subheading"><h2>From your team</h2><span>{received?.length ?? "—"}</span></div>
+        <div className="subheading"><h2>Applications to join you</h2><span>{received?.length ?? "—"}</span></div>
         {received?.length === 0 && <p className="empty">Applications to your project pitches will appear here.</p>}
         <ol className="application-list">
           {received?.map((application) => (
