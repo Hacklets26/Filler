@@ -1,4 +1,9 @@
-import os, tempfile
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
 os.environ["DATABASE_URL"] = f"sqlite:///{tempfile.mkdtemp()}/t.db"
 
 from urllib.parse import parse_qs, urlparse
@@ -12,6 +17,28 @@ from src.backend.database import SessionLocal
 from src.backend.models import Developer
 
 client = TestClient(app)
+
+
+def test_app_launcher_from_backend_root():
+    backend_root = Path(__file__).resolve().parents[1] / "src" / "backend"
+    launcher_check = (
+        "import runpy, uvicorn\n"
+        "def record_run(application, **options):\n"
+        "    assert options == {'host': '0.0.0.0', 'port': 30007}\n"
+        "    print('launcher invoked')\n"
+        "uvicorn.run = record_run\n"
+        "runpy.run_path('app.py', run_name='__main__')\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", launcher_check],
+        cwd=backend_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "launcher invoked" in result.stdout
 
 
 def test_github_login_redirect(monkeypatch):

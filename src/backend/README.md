@@ -12,6 +12,17 @@ python -m pip install -r requirements-dev.txt
 python src/backend/app.py
 ```
 
+When the deployment's working directory is the backend folder, run the same
+entry point there:
+
+```bash
+python app.py
+```
+
+The launcher loads the backend package relative to its own file, so it works
+both from the repository root and when the backend folder is the deployment
+root.
+
 The API listens on `http://localhost:30007`; interactive documentation is at
 `http://localhost:30007/docs`. The root [README](../../README.md) describes the
 frontend and API workflow.

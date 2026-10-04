@@ -1,4 +1,6 @@
-export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "https://backend.ifamished.com";
+export const API_BASE: string = import.meta.env.DEV
+  ? import.meta.env.VITE_API_BASE ?? "http://localhost:30007"
+  : "https://backend.ifamished.com";
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const TOKEN_KEY = "FILLER.token";
 
