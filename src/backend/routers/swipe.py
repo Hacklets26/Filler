@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_developer
 from ..database import get_db
 from ..models import Developer, Project, Swipe
-from ..schemas import MatchRead, MatchRequest, SwipeCreate, SwipeRead
+from ..schemas import DeveloperRead, MatchRead, MatchRequest, ProjectRead, SwipeCreate, SwipeRead
 
 router = APIRouter(tags=["swipes"])
 
@@ -43,4 +43,7 @@ def get_match(payload: MatchRequest, me: Developer = Depends(current_developer),
         Swipe.developer_id == developer.id, Swipe.project_id == project.id, Swipe.action == "APPLY"))
     if applied is None:
         raise HTTPException(409, "A match is available only after an APPLY swipe")
-    return MatchRead(developer=developer, project=project)
+    return MatchRead(
+        developer=DeveloperRead.model_validate(developer),
+        project=ProjectRead.model_validate(project),
+    )

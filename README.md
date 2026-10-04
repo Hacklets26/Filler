@@ -9,17 +9,25 @@ To rename it later, search for `FILLER` (case-sensitive); it is the only spellin
 
 ```bash
 python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 cp .env.example .env   # fill in GitHub OAuth credentials, then export them (or use your process manager)
 python src/backend/app.py            # API on http://localhost:30007, docs at /docs
 cd src/frontend && npm install && npm run dev   # UI on http://localhost:5173
 ```
 
 Create the OAuth app at <https://github.com/settings/developers> with callback URL
-`http://localhost:30007/auth/github/callback`. Set `VITE_API_BASE` for the frontend when the API is not on localhost.
+`https://backend.ifamished.com/auth/github/callback`. The deployed UI is
+`https://patchwork.millered001.workers.dev` and uses `https://backend.ifamished.com`
+as its API by default. For local development, set `PUBLIC_API_URL` to
+`http://localhost:30007`, `FRONTEND_URL` to `http://localhost:5173`, and
+`VITE_API_BASE` to `http://localhost:30007`.
 Tests: `python -m pytest tests`.
+Set `JWT_SECRET` to a unique random value of at least 32 characters in every
+deployed backend environment; the built-in value is only for local development.
 
-**Upgrading from the old schema:** delete `src/backend/gittok.db` (it is replaced by `FILLER.db`); `swipe_history`
-and `developers.name`-only profiles no longer exist.
+The SQLite database is created by the Python backend from the SQLAlchemy models
+when the application starts. It is not checked into Git; local `*.db`, `*.sqlite`,
+and `*.sqlite3` files are ignored.
 
 ## Auth
 

@@ -1,6 +1,8 @@
 import os, tempfile
 os.environ["DATABASE_URL"] = f"sqlite:///{tempfile.mkdtemp()}/t.db"
 
+from urllib.parse import parse_qs, urlparse
+
 import httpx
 from fastapi.testclient import TestClient
 from src.backend import repos
@@ -10,6 +12,97 @@ from src.backend.database import SessionLocal
 from src.backend.models import Developer
 
 client = TestClient(app)
+
+
+def test_github_login_redirect(monkeypatch):
+    import src.backend.routers.auth as auth_router
+
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_ID", "test-client")
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_SECRET", "test-secret")
+    monkeypatch.setattr(auth_router, "PUBLIC_API_URL", "https://backend.ifamished.com")
+
+    response = client.get("/auth/github/login", follow_redirects=False)
+
+    assert response.status_code == 307
+    redirect = urlparse(response.headers["location"])
+    query = parse_qs(redirect.query)
+    assert redirect.netloc == "github.com"
+    assert query["client_id"] == ["test-client"]
+    assert query["redirect_uri"] == ["https://backend.ifamished.com/auth/github/callback"]
+    auth_router.read_token(query["state"][0], purpose="state")
+
+
+def test_github_login_requires_client_secret(monkeypatch):
+    import src.backend.routers.auth as auth_router
+
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_ID", "test-client")
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_SECRET", "")
+
+    assert client.get("/auth/github/login").status_code == 503
+
+
+def test_github_callback_redirects_to_frontend(monkeypatch):
+    import src.backend.routers.auth as auth_router
+
+    class FakeResponse:
+        def __init__(self, body):
+            self.body = body
+
+        def json(self):
+            return self.body
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            pass
+
+        def post(self, url, *, json, headers):
+            assert url == "https://github.com/login/oauth/access_token"
+            assert json["code"] == "oauth-code"
+            assert headers["Accept"] == "application/json"
+            return FakeResponse({"access_token": "github-token"})
+
+        def get(self, url, *, headers):
+            assert url == "https://api.github.com/user"
+            assert headers["Authorization"].startswith("Bearer ")
+            assert headers["Authorization"].endswith("github-token")
+            return FakeResponse({
+                "id": 70001,
+                "login": "callback-user",
+                "name": "Callback User",
+                "avatar_url": None,
+            })
+
+    def fake_infer_skills(login):
+        assert login == "callback-user"
+        return {"python": 3}
+
+    def build_client(*, timeout):
+        assert timeout == 10
+        return FakeClient()
+
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_ID", "test-client")
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_SECRET", "test-secret")
+    monkeypatch.setattr(auth_router, "FRONTEND_URL", "https://patchwork.millered001.workers.dev")
+    monkeypatch.setattr(auth_router, "infer_skills", fake_infer_skills)
+    monkeypatch.setattr(auth_router.httpx, "Client", build_client)
+    state = make_token("oauth", purpose="state", ttl=600)
+
+    response = client.get(
+        "/auth/github/callback",
+        params={"code": "oauth-code", "state": state},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    redirect = urlparse(response.headers["location"])
+    assert redirect.scheme == "https"
+    assert redirect.netloc == "patchwork.millered001.workers.dev"
+    assert redirect.path == "/"
+    callback_params = parse_qs(redirect.fragment.split("?", 1)[1])
+    assert auth_router.read_token(callback_params["token"][0])
 
 
 def mock_transport(request: httpx.Request) -> httpx.Response:
@@ -35,7 +128,7 @@ def user(gid, login):
 
 
 def test_flow():
-    a, aid = user(1, "alice"); b, bid = user(2, "bob")
+    a, aid = user(1, "alice"); b, _ = user(2, "bob")
     assert client.get("/feed").status_code == 401
     assert client.put("/me", json={"name": "Alice A", "skills": {"Python ": 4}, "interests": ["Data"]}, headers=a).json()["skills"] == {"python": 4}
 
@@ -81,7 +174,6 @@ def test_upload_limits():
     assert client.post("/upload_video", files={"file": ("x.mp4", b"1")}).status_code == 401
     r = client.post("/upload_video", files={"file": ("x.mp4", b"1234")}, headers=a)
     assert r.status_code == 200 and r.json()["video_url"].endswith(".mp4")
-    from src.backend import routers
     import src.backend.routers.project as pr
     pr.MAX_VIDEO_BYTES = 2
     assert client.post("/upload_video", files={"file": ("x.mp4", b"1234")}, headers=a).status_code == 413

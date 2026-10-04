@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -15,15 +17,16 @@ router = APIRouter(tags=["auth"])
 
 @router.get("/auth/github/login")
 def github_login():
-    if not GITHUB_CLIENT_ID:
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
         raise HTTPException(503, "GitHub login is not configured on the server")
     state = make_token("oauth", purpose="state", ttl=600)
-    url = (
-        "https://github.com/login/oauth/authorize"
-        f"?client_id={GITHUB_CLIENT_ID}&scope=read:user&state={state}"
-        f"&redirect_uri={PUBLIC_API_URL}/auth/github/callback"
-    )
-    return RedirectResponse(url)
+    query = urlencode({
+        "client_id": GITHUB_CLIENT_ID,
+        "scope": "read:user",
+        "state": state,
+        "redirect_uri": f"{PUBLIC_API_URL}/auth/github/callback",
+    })
+    return RedirectResponse(f"https://github.com/login/oauth/authorize?{query}")
 
 
 @router.get("/auth/github/callback")
