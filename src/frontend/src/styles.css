@@ -206,10 +206,14 @@ button.block { width: 100%; margin-top: 1.5rem; }
 .skill-group { min-width: 0; margin: 0; padding: .55rem; border: 1px solid var(--line); border-radius: 14px; }
 .skill-group legend { padding: 0 .35rem; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .skill-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); gap: .4rem; }
-button.skill-option { min-height: 48px; align-items: flex-start; justify-content: center; gap: .05rem; padding: .4rem .55rem; border-color: var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: .78rem; font-weight: 700; text-align: left; transition: background .18s, border-color .18s, color .18s; }
+button.skill-option { min-height: 42px; align-items: center; justify-content: space-between; gap: .4rem; padding: .4rem .55rem; border-color: var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: .78rem; font-weight: 700; text-align: left; transition: background .18s, border-color .18s, color .18s; }
 button.skill-option:hover:not(:disabled) { border-color: var(--green); background: var(--mint); color: var(--green-dark); box-shadow: none; transform: none; }
-button.skill-option.selected { border-color: var(--green); background: var(--mint); color: var(--green-dark); }
-.skill-level { color: var(--green); font-size: .65rem; font-weight: 700; letter-spacing: .04em; }
+button.skill-option[data-level="beginner"] { --skill-color: #27845a; }
+button.skill-option[data-level="intermediate"] { --skill-color: #d6a400; }
+button.skill-option[data-level="advanced"] { --skill-color: #e97a22; }
+button.skill-option[data-level="expert"] { --skill-color: #d94a4a; }
+button.skill-option.selected { border-color: var(--skill-color); background: color-mix(in srgb, var(--skill-color) 12%, var(--card)); }
+button.skill-option.selected::after { width: .65rem; height: .65rem; flex: none; border-radius: 50%; background: var(--skill-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--skill-color) 18%, var(--card)); content: ""; }
 
 .form, .post, .application-card {
   border: 1px solid var(--surface-border);

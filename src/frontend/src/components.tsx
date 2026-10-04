@@ -56,6 +56,7 @@ export function SkillEditor({ label, value, onChange }: {
                 return (
                   <button
                     className={`skill-option${level ? " selected" : ""}`}
+                    data-level={level?.toLowerCase()}
                     type="button"
                     key={skill}
                     aria-label={`${skill}: ${level ?? "not selected"}. Click to change proficiency.`}
@@ -63,7 +64,6 @@ export function SkillEditor({ label, value, onChange }: {
                     onClick={() => cycle(skill)}
                   >
                     <span>{skill}</span>
-                    {level && <span className="skill-level">{level}</span>}
                   </button>
                 );
               })}
