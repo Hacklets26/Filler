@@ -98,7 +98,7 @@ export default function Feed() {
         </label>
       </div>
       {items === null && !error && <p className="empty">Loading…</p>}
-      {items?.length === 0 && <div className="empty-card"><h2>Room to make a difference</h2><p>There are no new projects right now. Pitch a project of your own, or come back soon.</p></div>}
+      {items?.length === 0 && <div className="empty-card"><h2>Please submit your projects!</h2><p>There are no new projects right now. Pitch a project of your own, or come back soon.</p></div>}
       {items && items.length > 0 && visibleItems.length === 0 && <p className="empty">No projects match those filters. Try a broader search.</p>}
       <ol className="posts">
         {visibleItems.map((p) => (
