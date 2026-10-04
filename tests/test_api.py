@@ -187,6 +187,7 @@ def test_match_uses_only_available_signals_and_weights_skill_demand():
         "skill_fit": 0.8333,
         "interest_fit": None,
         "text_fit": 0,
+        "interest_relevance_fit": 0,
     }
 
     project.needs = {}
@@ -196,7 +197,47 @@ def test_match_uses_only_available_signals_and_weights_skill_demand():
         "skill_fit": None,
         "interest_fit": None,
         "text_fit": None,
+        "interest_relevance_fit": None,
     }
+
+
+def test_interest_relevance_fit_combines_available_signals_without_changing_match_score():
+    from src.backend.matching import explain_match
+    from src.backend.models import Project
+
+    developer = Developer(
+        github_id=7,
+        login="ada",
+        name="Ada",
+        skills={"python": 5},
+        interests=["data", "design"],
+    )
+    project = Project(
+        title="Python data",
+        description=None,
+        repo_url="https://github.com/o/data",
+        needs={"python": 5},
+        tags=["data", "web"],
+        maintainer_id=8,
+    )
+
+    result = explain_match(developer, project)
+
+    assert result["skill_fit"] == 1
+    assert result["interest_fit"] == 0.5
+    assert result["text_fit"] == 0.6667
+    assert result["interest_relevance_fit"] == 0.5625
+    assert result["match_score"] == 0.825
+
+    project.tags = []
+    text_only = explain_match(developer, project)
+    assert text_only["interest_fit"] is None
+    assert text_only["interest_relevance_fit"] == text_only["text_fit"]
+
+    project.title = ""
+    project.description = None
+    no_relevance_data = explain_match(developer, project)
+    assert no_relevance_data["interest_relevance_fit"] is None
 
 
 def test_text_fit_matches_profile_phrases_across_punctuation_and_stop_words():
@@ -311,6 +352,7 @@ def test_flow():
     assert f[0]["skill_fit"] == 0.6667
     assert f[0]["interest_fit"] == 0.5
     assert f[0]["text_fit"] == 0
+    assert f[0]["interest_relevance_fit"] == 0.3125
     assert f[0]["match_score"] == 0.525
     assert client.get("/feed", headers=b).json() == []  # own project hidden
 

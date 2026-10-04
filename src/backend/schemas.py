@@ -113,6 +113,7 @@ class FeedProject(ProjectRead):
     skill_fit: float | None
     interest_fit: float | None
     text_fit: float | None
+    interest_relevance_fit: float | None
 
 
 class RepoInspect(BaseModel):

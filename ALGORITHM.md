@@ -118,7 +118,7 @@ present but none of the concepts match, the score is zero.
 
 ## Combining the signals
 
-The default weights are:
+The overall match keeps three scoring signals at these weights:
 
 | Signal | Weight |
 | --- | ---: |
@@ -134,8 +134,24 @@ match_score = sum(weight_i * score_i for each available signal i)
               / sum(weight_i for each available signal i)
 ```
 
+The feed's component bars show Skill fit separately and combine Interest fit
+with Text fit in a single **Interest & relevance** bar. This display value is
+a weighted average using the original `0.25` and `0.15` weights, renormalized
+over whichever of those two component scores are available:
+
+```text
+interest_relevance_fit =
+    sum(weight_i * score_i for available interest/text signals i)
+    / sum(weight_i for available interest/text signals i)
+```
+
+Thus the combined bar is the Interest fit when text fit is unavailable, the
+Text fit when interest fit is unavailable, and unavailable if neither can be
+calculated. It does not alter the three underlying scores or their
+contribution to the overall match.
+
 For example, if a project has skill fit `0.5`, interest fit `0.5`, and text
-fit `2/3`, all three signals are available:
+fit `2/3`, all three overall-match signals are available:
 
 ```text
 (0.60 * 0.5 + 0.25 * 0.5 + 0.15 * 2/3) / (0.60 + 0.25 + 0.15)
@@ -148,7 +164,7 @@ none of the three signals is available, the score is a neutral `0.5`.
 
 The returned overall score and available component scores are rounded to four
 decimal places. The feed displays the overall score as a rounded percentage
-and shows component percentages for skill fit, interest fit, and project
+and shows component percentages for skill fit and combined interest and
 relevance.
 
 ## Feed selection and ordering

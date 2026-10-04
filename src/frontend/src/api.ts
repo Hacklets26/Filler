@@ -12,6 +12,7 @@ export interface Project {
 }
 export interface FeedProject extends Project {
   match_score: number; skill_fit: number | null; interest_fit: number | null; text_fit: number | null;
+  interest_relevance_fit: number | null;
 }
 export type ApplicationStatus = "pending" | "accepted" | "declined";
 export interface Application {

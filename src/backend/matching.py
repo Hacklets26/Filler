@@ -33,6 +33,7 @@ class MatchBreakdown(TypedDict):
     skill_fit: float | None
     interest_fit: float | None
     text_fit: float | None
+    interest_relevance_fit: float | None
 
 
 def _normalize(value: str) -> str:
@@ -126,9 +127,27 @@ def explain_match(developer: Developer, project: Project) -> MatchBreakdown:
             if score is not None
         ) / weight_total
 
+    interest_relevance_signals = [
+        (name, scores[name])
+        for name in ("interest_fit", "text_fit")
+        if scores[name] is not None
+    ]
+    if interest_relevance_signals:
+        combined_weight = sum(WEIGHTS[name] for name, _ in interest_relevance_signals)
+        interest_relevance_fit = sum(
+            WEIGHTS[name] * score
+            for name, score in interest_relevance_signals
+            if score is not None
+        ) / combined_weight
+    else:
+        interest_relevance_fit = None
+
     return MatchBreakdown(
         match_score=round(match_score, 4),
         skill_fit=round(scores["skill_fit"], 4) if scores["skill_fit"] is not None else None,
         interest_fit=round(scores["interest_fit"], 4) if scores["interest_fit"] is not None else None,
         text_fit=round(scores["text_fit"], 4) if scores["text_fit"] is not None else None,
+        interest_relevance_fit=(
+            round(interest_relevance_fit, 4) if interest_relevance_fit is not None else None
+        ),
     )

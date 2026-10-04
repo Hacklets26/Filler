@@ -4,7 +4,7 @@ import { useAuth } from "../auth";
 import { Chip, getSkillLabel, Meter, Notice, msg } from "../components";
 
 type ProjectBodyData = FeedProject | (Project & Partial<Pick<
-  FeedProject, "match_score" | "skill_fit" | "interest_fit" | "text_fit"
+  FeedProject, "match_score" | "skill_fit" | "interest_fit" | "text_fit" | "interest_relevance_fit"
 >>);
 
 export function ProjectBody({ p }: { p: ProjectBodyData }) {
@@ -35,7 +35,7 @@ export function ProjectBody({ p }: { p: ProjectBodyData }) {
         {p.tags.map((t) => <Chip key={t} shared={interests.has(t)}>{t}</Chip>)}
       </ul>
       {p.match_score !== undefined && (
-        <Meter skill={p.skill_fit ?? null} interest={p.interest_fit ?? null} text={p.text_fit ?? null} />
+        <Meter skill={p.skill_fit ?? null} interestRelevance={p.interest_relevance_fit ?? null} />
       )}
     </>
   );

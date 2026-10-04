@@ -107,8 +107,8 @@ export function TagEditor({ label, value, onChange, placeholder }: {
 }
 
 /** The meter makes each ranking signal easy to scan in a single glance. */
-export function Meter({ skill, interest, text }: {
-  skill: number | null; interest: number | null; text: number | null;
+export function Meter({ skill, interestRelevance }: {
+  skill: number | null; interestRelevance: number | null;
 }) {
   const row = (name: string, v: number) => (
     <div className="meter-row">
@@ -122,8 +122,7 @@ export function Meter({ skill, interest, text }: {
   return (
     <div className="meter">
       {skill !== null && row("Skill fit", skill)}
-      {interest !== null && row("Interest fit", interest)}
-      {text !== null && row("Project relevance", text)}
+      {interestRelevance !== null && row("Interest & relevance", interestRelevance)}
     </div>
   );
 }
