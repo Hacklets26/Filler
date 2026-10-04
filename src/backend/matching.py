@@ -25,7 +25,7 @@ STOP_WORDS = {
     "have", "into", "its", "our", "project", "that", "the", "their", "this",
     "with", "your",
 }
-WORD_PATTERN = re.compile(r"[\w+#.-]+", re.UNICODE)
+WORD_PATTERN = re.compile(r"[\w]+(?:[+#]+)?", re.UNICODE)
 
 
 class MatchBreakdown(TypedDict):
@@ -39,12 +39,19 @@ def _normalize(value: str) -> str:
     return value.strip().casefold()
 
 
-def _tokens(value: str) -> set[str]:
-    return {
+def _tokens(value: str) -> tuple[str, ...]:
+    return tuple(
         token
         for token in WORD_PATTERN.findall(value.casefold())
-        if token not in STOP_WORDS and (len(token) > 1 or token in {"c", "r"})
-    }
+        if len(token) > 1 or token in {"c", "r"}
+    )
+
+
+def _contains_phrase(text: tuple[str, ...], phrase: tuple[str, ...]) -> bool:
+    return any(
+        text[index:index + len(phrase)] == phrase
+        for index in range(len(text) - len(phrase) + 1)
+    )
 
 
 def explain_match(developer: Developer, project: Project) -> MatchBreakdown:
@@ -79,17 +86,30 @@ def explain_match(developer: Developer, project: Project) -> MatchBreakdown:
     if tags:
         scores["interest_fit"] = len(tags & interests) / len(tags)
 
-    profile_terms: set[str] = set()
-    for skill in profile_skills:
-        profile_terms.update(_tokens(skill))
-    for interest in interests:
-        profile_terms.update(_tokens(interest))
-    project_text = " ".join(
-        part for part in (project.title or "", project.description or "") if part
-    )
-    text_terms = _tokens(project_text)
-    if profile_terms and text_terms:
-        scores["text_fit"] = len(profile_terms & text_terms) / len(profile_terms)
+    profile_concepts = {
+        tokens
+        for value in (*profile_skills, *interests)
+        if (tokens := _tokens(value))
+    }
+    title_tokens = _tokens(project.title or "")
+    description_tokens = _tokens(project.description or "")
+    project_terms = {
+        token
+        for token in (*title_tokens, *description_tokens)
+        if token not in STOP_WORDS
+    }
+    if profile_concepts and (title_tokens or description_tokens):
+        concept_scores = []
+        for concept in profile_concepts:
+            if _contains_phrase(title_tokens, concept) or _contains_phrase(description_tokens, concept):
+                concept_scores.append(1.0)
+                continue
+            useful_terms = set(concept) - STOP_WORDS
+            concept_scores.append(
+                len(useful_terms & project_terms) / len(useful_terms)
+                if useful_terms else 0.0
+            )
+        scores["text_fit"] = sum(concept_scores) / len(concept_scores)
 
     available = [
         (name, score)

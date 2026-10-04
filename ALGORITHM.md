@@ -78,28 +78,43 @@ the developer has no matching interests, interest fit is zero.
 
 ### Text fit (15% of the available weight)
 
-Text fit checks for words from the developer's profile in the project's title
-and description. It does not compare whole phrases or use semantic search.
+Text fit measures how well the developer's distinct skill and interest phrases
+are represented in the project's title or description. It is a literal,
+case-insensitive text comparison, not semantic search.
 
-1. Normalize each skill name and interest, then tokenize those profile terms
-   and the combined project title and description.
-2. Tokens are case-insensitive matches from the pattern `[\w+#.-]+`.
-3. Ignore the stop words `about`, `after`, `all`, `and`, `are`, `build`,
-   `building`, `for`, `from`, `have`, `into`, `its`, `our`, `project`, `that`,
-   `the`, `their`, `this`, `with`, and `your`.
-4. Ignore one-character tokens other than `c` and `r`.
-5. Compare the resulting sets. The score is the fraction of distinct profile
-   terms found in the project text:
+1. Treat each skill name and interest as a separate profile concept; duplicate
+   phrases are counted once.
+2. Tokenize profile phrases, title, and description case-insensitively using
+   `[\w]+(?:[+#]+)?`. Punctuation such as spaces, hyphens, and periods
+   separates tokens, so `Machine-Learning` and `machine learning` produce the
+   same phrase tokens. One-character tokens are ignored except for `c` and
+   `r`.
+3. First look for the entire profile phrase as a consecutive sequence of
+   tokens in either the title or description. A full phrase match earns full
+   credit for that concept. This exact-phrase check happens before stop words
+   are ignored.
+4. If the full phrase is not present, calculate partial credit from the
+   fraction of that concept's non-stop-word tokens found anywhere in the
+   title or description. Stop words are `about`, `after`, `all`, `and`, `are`,
+   `build`, `building`, `for`, `from`, `have`, `into`, `its`, `our`,
+   `project`, `that`, `the`, `their`, `this`, `with`, and `your`.
+5. Average the credit across the distinct profile concepts:
 
 ```text
-text_fit = count(profile terms also in project title or description)
-           / count(profile terms)
+text_fit = sum(credit for each profile concept) / count(profile concepts)
 ```
 
-The project text is a match source, not the denominator: repeating a term or
-adding a long description does not increase the score by itself. If either the
-profile has no usable terms or the project text has no usable terms, text fit
-is unavailable. If both sides have terms but none overlap, the score is zero.
+For example, a developer with the skill `Machine Learning` gets full credit
+for that skill when a project title contains `Machine-Learning`, despite the
+hyphen. If the same developer also has the interest `Build`, the title
+`Machine-Learning Build` matches both concepts; `Build` is still recognized
+because exact phrase matches are checked before stop words are excluded from
+partial matches.
+
+Title and description are both searched; repeated words do not add extra
+credit. If the profile has no skill or interest phrases, or the project has
+neither a title nor a description, text fit is unavailable. If project text is
+present but none of the concepts match, the score is zero.
 
 ## Combining the signals
 

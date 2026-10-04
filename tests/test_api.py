@@ -177,6 +177,29 @@ def test_match_uses_only_available_signals_and_weights_skill_demand():
     }
 
 
+def test_text_fit_matches_profile_phrases_across_punctuation_and_stop_words():
+    from src.backend.matching import explain_match
+    from src.backend.models import Project
+
+    developer = Developer(
+        github_id=6,
+        login="grace",
+        name="Grace",
+        skills={"Machine Learning": 3},
+        interests=["Build"],
+    )
+    project = Project(
+        title="Machine-Learning Build",
+        description=None,
+        repo_url="https://github.com/o/ml",
+        needs={},
+        tags=[],
+        maintainer_id=8,
+    )
+
+    assert explain_match(developer, project)["text_fit"] == 1
+
+
 def mock_transport(request: httpx.Request) -> httpx.Response:
     u = str(request.url)
     if u.endswith("/repos/o/good"):
