@@ -118,3 +118,18 @@ button:hover { background: var(--moss-dark); }
 .match p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
 .match .why { color: var(--ink); font-size: 0.85rem; margin-top: 0.5rem; }
 .empty { color: var(--muted); }
+
+/* API-connected additions */
+.status { margin: 0; padding: 0.6rem 1.5rem; background: var(--mark); color: #16211e; font-weight: 600; }
+.status.bad { background: var(--danger); color: #fff; }
+select {
+  padding: 0.5rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); color: inherit; font: inherit;
+}
+button.block { width: 100%; margin-top: 1.25rem; }
+button:disabled { opacity: 0.6; cursor: wait; }
+button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+button.secondary:hover { background: var(--paper); }
+.actions { display: flex; gap: 0.5rem; margin-top: 0.9rem; }
+.score { color: var(--muted); font-size: 0.85rem; }
+.post a, .match a { color: var(--moss); font-weight: 600; }

@@ -1,83 +1,80 @@
-// ---------- Types ----------
-interface Profile {
-  skills: Set<string>;
-  interests: Set<string>;
+// ---------- Config ----------
+const API_BASE = "http://ashburn.hungernet.dev:30007";
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const STORE_KEY = "patchwork.developerId";
+const LEVELS = [1, 2, 3, 4, 5];
+
+// ---------- Types (mirror the backend README) ----------
+type Skills = Record<string, number>;
+type SwipeAction = "LIKE" | "SKIP" | "APPLY";
+
+interface Developer {
+  id: number;
+  name: string;
+  skills: Skills;
+  interests: string[];
+  swipe_history: number[];
 }
 
 interface Project {
-  id: string;
-  name: string;
-  summary: string;
-  skills: string[];
-  topics: string[];
-}
-
-interface Post {
-  id: string;
-  author: string;
-  text: string;
+  id: number;
+  title: string;
+  repo_url: string;
+  video_url: string | null;
+  needs: Skills;
   tags: string[];
-  videoUrl?: string;
-  createdAt: number;
+  maintainer_id: number;
+  match_score?: number; // only present on /feed results
 }
 
-interface Scored<T> {
-  item: T;
-  score: number; // 0 to 1
-  sharedSkills: string[];
-  sharedTopics: string[];
+// ---------- API client ----------
+class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
 }
 
-// ---------- Constants and sample data ----------
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-const DAY_MS = 86_400_000;
+async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(API_BASE + path, init);
+  } catch {
+    throw new ApiError(0, "Can't reach the server. Check it is running, and that this page isn't on https while the API is on http.");
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } catch { /* keep statusText */ }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<T>;
+}
 
-const projects: Project[] = [
-  { id: "p1", name: "tidepool", summary: "A static site generator with a plugin system. Needs docs and a11y help.", skills: ["typescript", "docs", "accessibility"], topics: ["web", "accessibility"] },
-  { id: "p2", name: "gridwatch", summary: "Open grid-load data tools for researchers and city planners.", skills: ["python", "data", "visualization"], topics: ["climate", "energy"] },
-  { id: "p3", name: "lumen-cli", summary: "A fast command line image optimizer. Looking for Rust contributors.", skills: ["rust", "cli", "testing"], topics: ["performance", "tooling"] },
-  { id: "p4", name: "openclinic", summary: "Scheduling software for small community clinics.", skills: ["typescript", "design", "postgres"], topics: ["health", "web"] },
-];
-
-const posts: Post[] = [
-  { id: "s1", author: "Maya", text: "Tidepool's plugin API is stable now. We need people to write guides and test screen reader flows.", tags: ["docs", "accessibility", "typescript"], createdAt: Date.now() - 2 * 3_600_000 },
-  { id: "s2", author: "Dev", text: "Looking for a second maintainer for lumen-cli. Rust experience helps, but good tests matter more.", tags: ["rust", "cli", "testing"], createdAt: Date.now() - 1 * DAY_MS },
-  { id: "s3", author: "Ines", text: "Gridwatch now ingests hourly data from three regions. Help with charts would be great.", tags: ["python", "visualization", "climate"], createdAt: Date.now() - 4 * DAY_MS },
-];
+const send = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 // ---------- State ----------
-const profile: Profile = {
-  skills: new Set(["typescript", "docs"]),
-  interests: new Set(["accessibility"]),
-};
+let developer: Developer | null = null;
+let feed: Project[] = [];
+let allProjects: Project[] = [];
+let applied = new Set<number>();
+const skillsDraft: Skills = {};
+const interestsDraft = new Set<string>();
+const needsDraft: Skills = {};
 
-// ---------- Matching algorithm ----------
+// ---------- Helpers ----------
 const normalize = (s: string): string => s.trim().toLowerCase();
 
-function overlap(a: Iterable<string>, b: Set<string>): string[] {
-  return [...a].map(normalize).filter((x) => b.has(x));
+function $<T extends HTMLElement>(id: string): T {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Missing element #${id}`);
+  return node as T;
 }
 
-/** Score = 60% skill fit + 40% interest fit, each as share of the item's needs covered. */
-function scoreProject(p: Project): Scored<Project> {
-  const sharedSkills = overlap(p.skills, profile.skills);
-  const sharedTopics = overlap(p.topics, profile.interests);
-  const skillFit = p.skills.length ? sharedSkills.length / p.skills.length : 0;
-  const topicFit = p.topics.length ? sharedTopics.length / p.topics.length : 0;
-  return { item: p, score: 0.6 * skillFit + 0.4 * topicFit, sharedSkills, sharedTopics };
-}
-
-/** Posts rank by tag overlap with the profile, with a gentle recency boost. */
-function scorePost(p: Post): Scored<Post> {
-  const all = new Set([...profile.skills, ...profile.interests]);
-  const shared = overlap(p.tags, all);
-  const tagFit = p.tags.length ? shared.length / p.tags.length : 0;
-  const ageDays = (Date.now() - p.createdAt) / DAY_MS;
-  const recency = 1 / (1 + ageDays);
-  return { item: p, score: 0.75 * tagFit + 0.25 * recency, sharedSkills: shared, sharedTopics: [] };
-}
-
-// ---------- DOM helpers (textContent only, so user text is never parsed as HTML) ----------
+// textContent only, so user text is never parsed as HTML
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props: Partial<HTMLElementTagNameMap[K]> = {},
@@ -88,118 +85,243 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function $<T extends HTMLElement>(id: string): T {
-  const node = document.getElementById(id);
-  if (!node) throw new Error(`Missing element #${id}`);
-  return node as T;
+/** Only allow http(s) links so a saved "javascript:" URL can't run. */
+function safeUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch { return null; }
 }
 
-function timeAgo(ts: number): string {
-  const mins = Math.round((Date.now() - ts) / 60_000);
-  if (mins < 60) return `${Math.max(mins, 1)} min ago`;
-  if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
-  return `${Math.round(mins / 1440)} d ago`;
+function setStatus(msg: string, bad = false): void {
+  const box = $("status");
+  box.textContent = msg;
+  box.hidden = !msg;
+  box.className = bad ? "status bad" : "status";
 }
+
+const fail = (e: unknown): void => setStatus(e instanceof Error ? e.message : "Something went wrong.", true);
+
+function storage(op: () => void): void { try { op(); } catch { /* storage may be blocked */ } }
+const appliedKey = (id: number): string => `patchwork.applied.${id}`;
 
 // ---------- Rendering ----------
-function renderChipList(target: HTMLElement, values: Set<string>): void {
-  target.replaceChildren(
-    ...[...values].map((v) =>
-      el("li", { className: "chip" }, v,
-        el("button", {
-          type: "button",
-          ariaLabel: `Remove ${v}`,
-          textContent: "×",
-          onclick: () => { values.delete(v); renderAll(); },
-        }))
-    )
-  );
+function renderChips(target: HTMLElement, entries: { label: string; onRemove: () => void }[]): void {
+  target.replaceChildren(...entries.map(({ label, onRemove }) =>
+    el("li", { className: "chip" }, label,
+      el("button", { type: "button", ariaLabel: `Remove ${label}`, textContent: "×", onclick: onRemove }))));
 }
 
-function renderPost({ item: p, sharedSkills }: Scored<Post>): HTMLElement {
-  const chips = el("ul", { className: "chips" },
-    ...p.tags.map((t) => el("li", { className: sharedSkills.includes(normalize(t)) ? "chip shared" : "chip" }, t)));
-  const card = el("li", { className: "post" },
-    el("div", { className: "post-head" }, el("strong", {}, p.author), el("time", {}, timeAgo(p.createdAt))),
-    el("p", {}, p.text));
-  if (p.videoUrl) {
-    card.append(el("video", { src: p.videoUrl, controls: true, preload: "metadata" }));
+function renderDrafts(): void {
+  renderChips($("skill-list"), Object.entries(skillsDraft).map(([k, v]) => ({
+    label: `${k} ${v}`, onRemove: () => { delete skillsDraft[k]; renderDrafts(); },
+  })));
+  renderChips($("interest-list"), [...interestsDraft].map((k) => ({
+    label: k, onRemove: () => { interestsDraft.delete(k); renderDrafts(); },
+  })));
+  renderChips($("need-list"), Object.entries(needsDraft).map(([k, v]) => ({
+    label: `${k} ${v}`, onRemove: () => { delete needsDraft[k]; renderDrafts(); },
+  })));
+}
+
+function renderProject(p: Project): HTMLElement {
+  const mySkills = developer?.skills ?? {};
+  const myInterests = new Set((developer?.interests ?? []).map(normalize));
+
+  const head = el("div", { className: "post-head" }, el("strong", {}, p.title));
+  if (p.match_score !== undefined) {
+    head.append(el("span", { className: "score" }, `${Math.round(p.match_score * 100)}% match`));
   }
-  card.append(chips);
+  const card = el("li", { className: "post" }, head);
+
+  const repo = safeUrl(p.repo_url);
+  if (repo) card.append(el("p", {}, el("a", { href: repo, target: "_blank", rel: "noopener noreferrer" }, "View repository")));
+
+  const video = safeUrl(p.video_url);
+  if (video) card.append(el("video", { src: video, controls: true, preload: "metadata" }));
+
+  const needs = Object.entries(p.needs ?? {}).map(([skill, level]) =>
+    el("li", { className: (mySkills[skill] ?? 0) >= level ? "chip shared" : "chip" }, `${skill} ${level}`));
+  const tags = (p.tags ?? []).map((t) =>
+    el("li", { className: myInterests.has(normalize(t)) ? "chip shared" : "chip" }, t));
+  if (needs.length || tags.length) card.append(el("ul", { className: "chips" }, ...needs, ...tags));
+
+  if (developer) {
+    const act = (action: SwipeAction, label: string, secondary: boolean) =>
+      el("button", { type: "button", textContent: label, className: secondary ? "secondary" : "", onclick: () => swipe(p, action) });
+    card.append(el("div", { className: "actions" }, act("SKIP", "Skip", true), act("LIKE", "Like", true), act("APPLY", "Apply", false)));
+  }
   return card;
 }
 
-function renderMatch({ item: p, score, sharedSkills, sharedTopics }: Scored<Project>): HTMLElement {
-  const filled = Math.round(score * 5);
-  const meter = el("div", { className: "meter", role: "img", ariaLabel: `Match ${filled} out of 5` },
-    ...[0, 1, 2, 3, 4].map((i) => el("span", { className: i < filled ? "on" : "" })));
-  const why = [...sharedSkills.map((s) => `skill: ${s}`), ...sharedTopics.map((t) => `interest: ${t}`)];
-  return el("li", { className: "match" },
-    el("h3", {}, p.name),
-    el("p", {}, p.summary),
-    meter,
-    el("p", { className: "why" }, why.length ? `Matches your ${why.join(", ")}` : "No overlap with your profile yet"));
+function renderApplied(): void {
+  const mine = allProjects.filter((p) => applied.has(p.id));
+  $("match-list").replaceChildren(...(mine.length
+    ? mine.map((p) => {
+        const repo = safeUrl(p.repo_url);
+        return el("li", { className: "match" },
+          el("h3", {}, p.title),
+          repo ? el("p", {}, el("a", { href: repo, target: "_blank", rel: "noopener noreferrer" }, "Open repository")) : el("p", {}, "No repository link"));
+      })
+    : [el("li", { className: "empty" }, "Projects you apply to will show up here.")]));
 }
 
-function renderAll(): void {
-  renderChipList($("skill-list"), profile.skills);
-  renderChipList($("interest-list"), profile.interests);
-
-  const rankedPosts = posts.map(scorePost).sort((a, b) => b.score - a.score);
-  $("feed-list").replaceChildren(...rankedPosts.map(renderPost));
-
-  const rankedProjects = projects.map(scoreProject).sort((a, b) => b.score - a.score);
-  $("match-list").replaceChildren(
-    ...(rankedProjects.some((m) => m.score > 0)
-      ? rankedProjects.map(renderMatch)
-      : [el("li", { className: "empty" }, "Add skills or interests to see matches.")])
-  );
+function renderFeed(): void {
+  const list = developer ? feed : allProjects;
+  $("feed-list").replaceChildren(...(list.length
+    ? list.map(renderProject)
+    : [el("li", { className: "empty" }, developer ? "You've seen every project. Check back soon." : "No projects yet. Pitch the first one.")]));
+  renderApplied();
 }
 
-// ---------- Events ----------
-function wireAdder(inputId: string, buttonId: string, target: Set<string>): void {
+// ---------- Data flow ----------
+async function refresh(): Promise<void> {
+  try {
+    const [projects, ranked] = await Promise.all([
+      api<Project[]>("/projects"),
+      developer ? api<Project[]>(`/feed/${developer.id}`) : Promise.resolve([] as Project[]),
+    ]);
+    allProjects = projects;
+    feed = ranked;
+    renderFeed();
+  } catch (e) { fail(e); }
+}
+
+function adoptDeveloper(d: Developer): void {
+  developer = d;
+  $<HTMLInputElement>("dev-name").value = d.name;
+  Object.keys(skillsDraft).forEach((k) => delete skillsDraft[k]);
+  Object.assign(skillsDraft, d.skills);
+  interestsDraft.clear();
+  d.interests.forEach((i) => interestsDraft.add(i));
+  storage(() => localStorage.setItem(STORE_KEY, String(d.id)));
+  storage(() => {
+    const saved = localStorage.getItem(appliedKey(d.id));
+    applied = new Set<number>(saved ? (JSON.parse(saved) as number[]) : []);
+  });
+  renderDrafts();
+}
+
+async function saveProfile(): Promise<void> {
+  const name = $<HTMLInputElement>("dev-name").value.trim();
+  if (!name) return setStatus("Enter your name before saving.", true);
+  const body = { name, skills: { ...skillsDraft }, interests: [...interestsDraft] };
+  try {
+    const d = developer
+      ? await api<Developer>(`/developer/${developer.id}`, send("PUT", body))
+      : await api<Developer>("/developer", send("POST", body));
+    adoptDeveloper(d);
+    setStatus("Profile saved.");
+    await refresh();
+  } catch (e) { fail(e); }
+}
+
+async function swipe(p: Project, action: SwipeAction): Promise<void> {
+  if (!developer) return;
+  try {
+    await api("/swipe", send("POST", { developer_id: developer.id, project_id: p.id, action }));
+    if (action === "APPLY") {
+      applied.add(p.id);
+      const id = developer.id;
+      storage(() => localStorage.setItem(appliedKey(id), JSON.stringify([...applied])));
+      setStatus(`Applied to ${p.title}.`);
+    } else {
+      setStatus("");
+    }
+    developer.swipe_history.push(p.id);
+    await refresh();
+  } catch (e) {
+    fail(e instanceof ApiError && e.status === 409 ? new Error("You already responded to this project.") : e);
+  }
+}
+
+async function onPitch(e: SubmitEvent): Promise<void> {
+  e.preventDefault();
+  if (!developer) return setStatus("Save your profile first. Pitches are posted under your profile.", true);
+
+  const title = $<HTMLInputElement>("pitch-title").value.trim();
+  const repo = $<HTMLInputElement>("pitch-repo").value.trim();
+  const tags = $<HTMLInputElement>("pitch-tags").value.split(",").map(normalize).filter(Boolean);
+  const file = $<HTMLInputElement>("pitch-video").files?.[0];
+
+  if (!title) return setStatus("Give your project a name.", true);
+  if (!safeUrl(repo)) return setStatus("Enter a repository link that starts with https://", true);
+  if (file && !file.name.toLowerCase().endsWith(".mp4")) return setStatus("The server only accepts .mp4 videos.", true);
+  if (file && file.size > MAX_VIDEO_BYTES) {
+    return setStatus(`That video is ${(file.size / 1_048_576).toFixed(1)} MB. Choose one under 50 MB.`, true);
+  }
+
+  const submit = $<HTMLButtonElement>("pitch-submit");
+  submit.disabled = true;
+  try {
+    let video_url: string | null = null;
+    if (file) {
+      setStatus("Uploading video…");
+      const form = new FormData();
+      form.append("file", file);
+      video_url = (await api<{ video_url: string }>("/upload_video", { method: "POST", body: form })).video_url;
+    }
+    await api<Project>("/project", send("POST", {
+      title, repo_url: repo, video_url, needs: { ...needsDraft }, tags, maintainer_id: developer.id,
+    }));
+    ($("composer") as HTMLFormElement).reset();
+    Object.keys(needsDraft).forEach((k) => delete needsDraft[k]);
+    renderDrafts();
+    setStatus("Pitch posted.");
+    await refresh();
+  } catch (err) { fail(err); }
+  finally { submit.disabled = false; }
+}
+
+// ---------- Wiring ----------
+function fillLevels(id: string): void {
+  $<HTMLSelectElement>(id).replaceChildren(...LEVELS.map((n) => el("option", { value: String(n), textContent: String(n) })));
+}
+
+function wireSkillAdder(inputId: string, levelId: string, buttonId: string, target: Skills): void {
   const input = $<HTMLInputElement>(inputId);
   const add = (): void => {
-    const v = normalize(input.value);
-    if (v) { target.add(v); input.value = ""; renderAll(); }
+    const name = normalize(input.value);
+    if (name) {
+      target[name] = Number($<HTMLSelectElement>(levelId).value);
+      input.value = "";
+      renderDrafts();
+    }
     input.focus();
   };
   $(buttonId).addEventListener("click", add);
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
 }
 
-function showError(msg: string): void {
-  const box = $("composer-error");
-  box.textContent = msg;
-  box.hidden = !msg;
+function wireInterestAdder(): void {
+  const input = $<HTMLInputElement>("interest-input");
+  const add = (): void => {
+    const v = normalize(input.value);
+    if (v) { interestsDraft.add(v); input.value = ""; renderDrafts(); }
+    input.focus();
+  };
+  $("interest-add").addEventListener("click", add);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
 }
 
-function onSubmit(e: SubmitEvent): void {
-  e.preventDefault();
-  const text = $<HTMLTextAreaElement>("post-text").value.trim();
-  const tags = $<HTMLInputElement>("post-tags").value.split(",").map(normalize).filter(Boolean);
-  const file = $<HTMLInputElement>("post-video").files?.[0];
+async function init(): Promise<void> {
+  fillLevels("skill-level");
+  fillLevels("need-level");
+  wireSkillAdder("skill-input", "skill-level", "skill-add", skillsDraft);
+  wireSkillAdder("need-input", "need-level", "need-add", needsDraft);
+  wireInterestAdder();
+  $("profile-save").addEventListener("click", () => void saveProfile());
+  $<HTMLFormElement>("composer").addEventListener("submit", (e) => void onPitch(e));
+  renderDrafts();
 
-  if (!text && !file) return showError("Write something or attach a video before posting.");
-  if (file && !file.type.startsWith("video/")) return showError("That file isn't a video. Choose an MP4, WebM or MOV.");
-  if (file && file.size > MAX_VIDEO_BYTES) {
-    return showError(`That video is ${(file.size / 1_048_576).toFixed(1)} MB. Choose one under 50 MB.`);
+  let savedId: string | null = null;
+  storage(() => { savedId = localStorage.getItem(STORE_KEY); });
+  if (savedId) {
+    try { adoptDeveloper(await api<Developer>(`/developer/${savedId}`)); }
+    catch { storage(() => localStorage.removeItem(STORE_KEY)); } // profile gone on server; start fresh
   }
-
-  showError("");
-  posts.unshift({
-    id: crypto.randomUUID(),
-    author: "You",
-    text,
-    tags,
-    videoUrl: file ? URL.createObjectURL(file) : undefined, // TODO: upload to your backend instead
-    createdAt: Date.now(),
-  });
-  (e.target as HTMLFormElement).reset();
-  renderAll();
+  await refresh();
 }
 
-wireAdder("skill-input", "skill-add", profile.skills);
-wireAdder("interest-input", "interest-add", profile.interests);
-$<HTMLFormElement>("composer").addEventListener("submit", onSubmit);
-renderAll();
+void init();

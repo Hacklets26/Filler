@@ -12,44 +12,62 @@
     <h1>Patchwork</h1>
     <p>Open source projects, matched to what you can do and what you care about.</p>
   </header>
+  <p id="status" class="status" role="status" hidden></p>
 
   <main class="layout">
     <aside class="profile" aria-label="Your profile">
       <h2>Your profile</h2>
-      <label for="skill-input">Skills</label>
+      <label for="dev-name">Name</label>
+      <input id="dev-name" type="text" autocomplete="name">
+
+      <label for="skill-input">Skills and your level (1 to 5)</label>
       <div class="add-row">
-        <input id="skill-input" type="text" placeholder="e.g. rust, docs, design">
-        <button id="skill-add" type="button">Add skill</button>
+        <input id="skill-input" type="text" placeholder="e.g. python">
+        <select id="skill-level" aria-label="Skill level"></select>
+        <button id="skill-add" type="button">Add</button>
       </div>
       <ul id="skill-list" class="chips"></ul>
 
       <label for="interest-input">Interests</label>
       <div class="add-row">
-        <input id="interest-input" type="text" placeholder="e.g. accessibility, climate">
-        <button id="interest-add" type="button">Add interest</button>
+        <input id="interest-input" type="text" placeholder="e.g. data">
+        <button id="interest-add" type="button">Add</button>
       </div>
       <ul id="interest-list" class="chips"></ul>
+
+      <button id="profile-save" type="button" class="block">Save profile</button>
     </aside>
 
     <section class="feed" aria-label="Feed">
       <form id="composer" class="composer">
-        <label for="post-text">Share a project or what you're looking for</label>
-        <textarea id="post-text" rows="4" placeholder="What are you building, or what do you want to work on?"></textarea>
-        <label for="post-tags">Tags (comma separated)</label>
-        <input id="post-tags" type="text" placeholder="typescript, cli, docs">
-        <div class="composer-row">
-          <input id="post-video" type="file" accept="video/*" aria-describedby="video-note">
-          <span id="video-note" class="note">Video up to 50 MB</span>
-          <button type="submit">Post</button>
+        <label for="pitch-title">Pitch your project</label>
+        <input id="pitch-title" type="text" placeholder="Project name">
+        <label for="pitch-repo">Repository link</label>
+        <input id="pitch-repo" type="text" inputmode="url" placeholder="https://github.com/you/project">
+
+        <label for="need-input">Skills you need and the level</label>
+        <div class="add-row">
+          <input id="need-input" type="text" placeholder="e.g. sql">
+          <select id="need-level" aria-label="Needed level"></select>
+          <button id="need-add" type="button">Add</button>
         </div>
-        <p id="composer-error" class="error" role="alert" hidden></p>
+        <ul id="need-list" class="chips"></ul>
+
+        <label for="pitch-tags">Tags (comma separated)</label>
+        <input id="pitch-tags" type="text" placeholder="data, open source">
+
+        <div class="composer-row">
+          <input id="pitch-video" type="file" accept="video/mp4,.mp4" aria-describedby="video-note">
+          <span id="video-note" class="note">MP4 video up to 50 MB</span>
+          <button id="pitch-submit" type="submit">Post pitch</button>
+        </div>
       </form>
 
       <ol id="feed-list" class="posts"></ol>
     </section>
 
-    <aside class="matches" aria-label="Matched projects">
-      <h2>Best matches for you</h2>
+    <aside class="matches" aria-label="Your applications">
+      <h2>Projects you applied to</h2>
       <ol id="match-list" class="matches-list"></ol>
     </aside>
   </main>
