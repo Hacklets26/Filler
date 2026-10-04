@@ -6,4 +6,5 @@ src/backend/patchwork.db
 src/backend/videos/
 src/frontend/node_modules/
 src/frontend/dist/
+src/frontend/.wrangler/
 .env

@@ -1,7 +1,10 @@
+import os
 import re
 from pathlib import Path
 
-VIDEO_DIRECTORY = Path(__file__).resolve().parent / "videos"
+VIDEO_DIRECTORY = Path(
+    os.getenv("VIDEO_DIRECTORY", str(Path(__file__).resolve().parent / "videos"))
+).resolve()
 VIDEO_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 VIDEO_URL_RE = re.compile(r"^https?://[^/\s]+/videos/([0-9a-f]{32}\.mp4)$")

@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 os.environ["DATABASE_URL"] = f"sqlite:///{tempfile.mkdtemp()}/t.db"
+os.environ["JWT_SECRET"] = "test-only-secret-for-patchwork-tests-32"
 
 from urllib.parse import parse_qs, urlparse
 
@@ -39,6 +40,27 @@ def test_app_launcher_from_backend_root():
 
     assert result.returncode == 0, result.stderr
     assert "launcher invoked" in result.stdout
+
+
+def test_backend_refuses_missing_or_insecure_jwt_secrets():
+    for secret in (None, "too-short", "replace-with-random-secret-at-least-32-characters-long",
+                   "patchwork-development-secret-change-before-deploy"):
+        env = os.environ.copy()
+        if secret is None:
+            env.pop("JWT_SECRET", None)
+        else:
+            env["JWT_SECRET"] = secret
+        result = subprocess.run(
+            [sys.executable, "-c", "from src.backend.config import JWT_SECRET"],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert result.returncode != 0
+        assert "JWT_SECRET" in result.stderr
 
 
 def test_github_login_redirect(monkeypatch):
@@ -198,6 +220,50 @@ def test_text_fit_matches_profile_phrases_across_punctuation_and_stop_words():
     )
 
     assert explain_match(developer, project)["text_fit"] == 1
+
+
+def test_project_update_does_not_delete_video_before_commit(monkeypatch):
+    import pytest
+    from src.backend.models import Project
+    from src.backend.routers import project as project_router
+    from src.backend.schemas import ProjectUpdate
+
+    old_video_url = f"https://backend.test/videos/{'a' * 32}.mp4"
+    project = Project(
+        id=10,
+        title="Existing",
+        repo_url="https://github.com/o/existing",
+        video_url=old_video_url,
+        needs={},
+        tags=[],
+        maintainer_id=8,
+    )
+    maintainer = Developer(
+        id=8, github_id=8, login="maintainer", name="Maintainer", skills={}, interests=[],
+    )
+
+    database = SessionLocal()
+    deleted_urls = []
+
+    def get_project(model, project_id):
+        assert model is Project
+        assert project_id == project.id
+        return project
+
+    monkeypatch.setattr(database, "get", get_project)
+
+    def fail_commit():
+        raise RuntimeError("Database commit failed")
+
+    monkeypatch.setattr(database, "commit", fail_commit)
+    monkeypatch.setattr(project_router, "delete_video_file", deleted_urls.append)
+    with pytest.raises(RuntimeError, match="Database commit failed"):
+        project_router.update_project(
+            10, ProjectUpdate(video_url=None), maintainer, database,
+        )
+
+    database.close()
+    assert deleted_urls == []
 
 
 def mock_transport(request: httpx.Request) -> httpx.Response:

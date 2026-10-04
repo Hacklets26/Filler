@@ -23,6 +23,11 @@ For the public deployment, configure:
 - `FRONTEND_URL=https://patchwork.hacklets.dev`.
 - A unique `JWT_SECRET` with at least 32 random characters.
 
+The backend refuses to start if `JWT_SECRET` is missing, too short, or left at
+the placeholder value from `.env.example`. Generate a different cryptographically
+random secret for each deployment and keep it stable between restarts so
+existing sessions remain valid.
+
 Register `https://backend.ifamished.com/auth/github/callback` as the GitHub
 OAuth callback URL. The service refuses to start an OAuth redirect when either
 GitHub credential is missing.
@@ -37,6 +42,11 @@ place.
 When `DATABASE_URL` is not set, Python creates `patchwork.db` in the backend
 directory using the SQLAlchemy models. Database files are ignored by Git.
 Set `DATABASE_URL` to use another SQLAlchemy-supported database.
+Uploaded videos are stored in the backend's `videos/` directory by default;
+set `VIDEO_DIRECTORY` to a persistent shared directory for deployments where
+the application filesystem is ephemeral or has multiple instances. Use a
+persistent `DATABASE_URL` as well so profiles, projects, and video references
+survive restarts.
 
 Applications are created from `APPLY` swipes with initial `pending` status.
 `GET /me/applications` lists the signed-in contributor's applications;

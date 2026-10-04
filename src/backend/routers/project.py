@@ -50,16 +50,17 @@ def update_project(project_id: int, payload: ProjectUpdate, me: Developer = Depe
                    database: Session = Depends(get_db)):
     project = _owned(database, project_id, me)
     changes = payload.model_dump(exclude_unset=True)
+    previous_video_url = project.video_url
     if "repo_url" in changes and changes["repo_url"] != project.repo_url:
         inspect_repo(changes["repo_url"])
-    if "video_url" in changes and changes["video_url"] != project.video_url:
-        delete_video_file(project.video_url)
     for field, value in changes.items():
         if value is None and field not in ("video_url", "description"):
             continue
         setattr(project, field, value)
     database.commit()
     database.refresh(project)
+    if project.video_url != previous_video_url:
+        delete_video_file(previous_video_url)
     return project
 
 
