@@ -1,0 +1,10 @@
+{
+  "name": "patchwork",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "serve": "npx serve ."
+  },
+  "devDependencies": { "typescript": "^5.6.0" }
+}

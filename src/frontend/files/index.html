@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patchwork: find open source projects that fit you</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="dist/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Patchwork</h1>
+    <p>Open source projects, matched to what you can do and what you care about.</p>
+  </header>
+
+  <main class="layout">
+    <aside class="profile" aria-label="Your profile">
+      <h2>Your profile</h2>
+      <label for="skill-input">Skills</label>
+      <div class="add-row">
+        <input id="skill-input" type="text" placeholder="e.g. rust, docs, design">
+        <button id="skill-add" type="button">Add skill</button>
+      </div>
+      <ul id="skill-list" class="chips"></ul>
+
+      <label for="interest-input">Interests</label>
+      <div class="add-row">
+        <input id="interest-input" type="text" placeholder="e.g. accessibility, climate">
+        <button id="interest-add" type="button">Add interest</button>
+      </div>
+      <ul id="interest-list" class="chips"></ul>
+    </aside>
+
+    <section class="feed" aria-label="Feed">
+      <form id="composer" class="composer">
+        <label for="post-text">Share a project or what you're looking for</label>
+        <textarea id="post-text" rows="4" placeholder="What are you building, or what do you want to work on?"></textarea>
+        <label for="post-tags">Tags (comma separated)</label>
+        <input id="post-tags" type="text" placeholder="typescript, cli, docs">
+        <div class="composer-row">
+          <input id="post-video" type="file" accept="video/*" aria-describedby="video-note">
+          <span id="video-note" class="note">Video up to 50 MB</span>
+          <button type="submit">Post</button>
+        </div>
+        <p id="composer-error" class="error" role="alert" hidden></p>
+      </form>
+
+      <ol id="feed-list" class="posts"></ol>
+    </section>
+
+    <aside class="matches" aria-label="Matched projects">
+      <h2>Best matches for you</h2>
+      <ol id="match-list" class="matches-list"></ol>
+    </aside>
+  </main>
+</body>
+</html>
