@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -9,10 +9,12 @@ class Developer(Base):
     __tablename__ = "developers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    github_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False, index=True)
+    login: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     skills: Mapped[dict[str, float]] = mapped_column(JSON, default=dict, nullable=False)
     interests: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    swipe_history: Mapped[list[int]] = mapped_column(JSON, default=list, nullable=False)
 
 
 class Project(Base):
@@ -20,23 +22,19 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
     repo_url: Mapped[str] = mapped_column(String, nullable=False)
     video_url: Mapped[str | None] = mapped_column(String, nullable=True)
     needs: Mapped[dict[str, float]] = mapped_column(JSON, default=dict, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    maintainer_id: Mapped[int] = mapped_column(
-        ForeignKey("developers.id"), nullable=False, index=True
-    )
+    maintainer_id: Mapped[int] = mapped_column(ForeignKey("developers.id"), nullable=False, index=True)
 
 
 class Swipe(Base):
     __tablename__ = "swipes"
+    __table_args__ = (UniqueConstraint("developer_id", "project_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    developer_id: Mapped[int] = mapped_column(
-        ForeignKey("developers.id"), nullable=False, index=True
-    )
-    project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"), nullable=False, index=True
-    )
+    developer_id: Mapped[int] = mapped_column(ForeignKey("developers.id"), nullable=False, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
     action: Mapped[str] = mapped_column(String, nullable=False)

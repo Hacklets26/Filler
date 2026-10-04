@@ -2,42 +2,82 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ..auth import current_developer
+from ..config import MAX_VIDEO_BYTES
 from ..database import get_db
-from ..models import Developer, Project
-from ..schemas import ProjectCreate, ProjectRead, VideoUploadRead
-from ..storage import VIDEO_DIRECTORY
-
+from ..models import Developer, Project, Swipe
+from ..repos import inspect_repo
+from ..schemas import ProjectCreate, ProjectRead, ProjectUpdate, RepoInspect, VideoUploadRead
+from ..storage import VIDEO_DIRECTORY, delete_video_file
 
 router = APIRouter(tags=["projects"])
 
 
-@router.post(
-    "/project",
-    response_model=ProjectRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_project(payload: ProjectCreate, database: Session = Depends(get_db)):
-    if database.get(Developer, payload.maintainer_id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Maintainer developer not found",
-        )
+def _owned(database: Session, project_id: int, me: Developer) -> Project:
+    project = database.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "Project not found")
+    if project.maintainer_id != me.id:
+        raise HTTPException(403, "Only the maintainer can change this project")
+    return project
 
-    project = Project(**payload.model_dump())
+
+@router.get("/repo/inspect", response_model=RepoInspect)
+def repo_inspect(url: str, _: Developer = Depends(current_developer)):
+    """Look up a GitHub/GitLab repo so the pitch form can prefill title, needs and tags."""
+    try:
+        return inspect_repo(url)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/project", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
+def create_project(payload: ProjectCreate, me: Developer = Depends(current_developer),
+                   database: Session = Depends(get_db)):
+    inspect_repo(payload.repo_url)  # 404 if the repo doesn't exist or isn't public
+    project = Project(**payload.model_dump(), maintainer_id=me.id)
     database.add(project)
     database.commit()
     database.refresh(project)
     return project
 
 
+@router.put("/project/{project_id}", response_model=ProjectRead)
+def update_project(project_id: int, payload: ProjectUpdate, me: Developer = Depends(current_developer),
+                   database: Session = Depends(get_db)):
+    project = _owned(database, project_id, me)
+    changes = payload.model_dump(exclude_unset=True)
+    if "repo_url" in changes and changes["repo_url"] != project.repo_url:
+        inspect_repo(changes["repo_url"])
+    if "video_url" in changes and changes["video_url"] != project.video_url:
+        delete_video_file(project.video_url)
+    for field, value in changes.items():
+        if value is None and field not in ("video_url", "description"):
+            continue
+        setattr(project, field, value)
+    database.commit()
+    database.refresh(project)
+    return project
+
+
+@router.delete("/project/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(project_id: int, me: Developer = Depends(current_developer),
+                   database: Session = Depends(get_db)):
+    project = _owned(database, project_id, me)
+    delete_video_file(project.video_url)
+    database.execute(delete(Swipe).where(Swipe.project_id == project.id))
+    database.delete(project)
+    database.commit()
+
+
 @router.get("/project/{project_id}", response_model=ProjectRead)
 def get_project(project_id: int, database: Session = Depends(get_db)):
     project = database.get(Project, project_id)
     if project is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        raise HTTPException(404, "Project not found")
     return project
 
 
@@ -47,27 +87,26 @@ def list_projects(database: Session = Depends(get_db)):
 
 
 @router.post("/upload_video", response_model=VideoUploadRead)
-async def upload_video(request: Request, file: UploadFile = File(...)):
-    filename = Path(file.filename or "").name
-    if Path(filename).suffix.lower() != ".mp4":
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only MP4 video uploads are supported",
-        )
+async def upload_video(request: Request, file: UploadFile = File(...),
+                       _: Developer = Depends(current_developer)):
+    if Path(Path(file.filename or "").name).suffix.lower() != ".mp4":
+        raise HTTPException(415, "Only MP4 video uploads are supported")
 
-    stored_filename = f"{uuid4().hex}.mp4"
-    destination = VIDEO_DIRECTORY / stored_filename
+    stored = f"{uuid4().hex}.mp4"
+    destination = VIDEO_DIRECTORY / stored
+    written = 0
     try:
-        with destination.open("wb") as video_file:
+        with destination.open("wb") as out:
             while chunk := await file.read(1024 * 1024):
-                video_file.write(chunk)
-    except OSError as exc:
+                written += len(chunk)
+                if written > MAX_VIDEO_BYTES:
+                    raise HTTPException(413, "Video must be 50 MB or smaller")
+                out.write(chunk)
+    except (OSError, HTTPException) as exc:
         destination.unlink(missing_ok=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to save uploaded video",
-        ) from exc
+        if isinstance(exc, HTTPException):
+            raise
+        raise HTTPException(500, "Unable to save uploaded video") from exc
     finally:
         await file.close()
-
-    return VideoUploadRead(video_url=str(request.base_url).rstrip("/") + f"/videos/{stored_filename}")
+    return VideoUploadRead(video_url=str(request.base_url).rstrip("/") + f"/videos/{stored}")

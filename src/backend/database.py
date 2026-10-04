@@ -10,7 +10,7 @@ class Base(DeclarativeBase):
     pass
 
 
-DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "gittok.db"
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "FILLER.db"
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DATABASE_PATH.as_posix()}")
 
 engine = create_engine(
