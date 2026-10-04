@@ -201,6 +201,15 @@ button.block { width: 100%; margin-top: 1.5rem; }
 .chip.shared { border-color: #cbe4d2; background: var(--mint); color: var(--green-dark); }
 .chip button { min-height: 0; padding: 0 .1rem; border: 0; background: transparent; color: var(--muted); font-size: 1rem; line-height: 1; }
 .chip button:hover { background: transparent; color: var(--danger); box-shadow: none; transform: none; }
+.skill-groups { display: grid; gap: .7rem; margin-top: .7rem; }
+.skill-editor-label { margin: 1rem 0 .4rem; font-size: .86rem; font-weight: 700; }
+.skill-group { min-width: 0; margin: 0; padding: .55rem; border: 1px solid var(--line); border-radius: 14px; }
+.skill-group legend { padding: 0 .35rem; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.skill-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); gap: .4rem; }
+button.skill-option { min-height: 48px; align-items: flex-start; justify-content: center; gap: .05rem; padding: .4rem .55rem; border-color: var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: .78rem; font-weight: 700; text-align: left; transition: background .18s, border-color .18s, color .18s; }
+button.skill-option:hover:not(:disabled) { border-color: var(--green); background: var(--mint); color: var(--green-dark); box-shadow: none; transform: none; }
+button.skill-option.selected { border-color: var(--green); background: var(--mint); color: var(--green-dark); }
+.skill-level { color: var(--green); font-size: .65rem; font-weight: 700; letter-spacing: .04em; }
 
 .form, .post, .application-card {
   border: 1px solid var(--surface-border);

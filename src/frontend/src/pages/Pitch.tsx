@@ -73,7 +73,7 @@ export default function Pitch() {
       <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
       <label htmlFor="desc">What does it do?</label>
       <textarea id="desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-      <SkillEditor label="Skills you need and the level" value={needs} onChange={setNeeds} placeholder="e.g. sql" />
+      <SkillEditor label="Choose skills this project needs" value={needs} onChange={setNeeds} />
       <TagEditor label="Tags" value={tags} onChange={setTags} placeholder="e.g. open source" />
       <label htmlFor="video">Pitch video (MP4, up to 50 MB)</label>
       <input id="video" type="file" accept="video/mp4,.mp4" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />

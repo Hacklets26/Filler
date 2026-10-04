@@ -1,9 +1,22 @@
 import { useState, type ReactNode } from "react";
 import type { Skills } from "./api";
 
-// Consistent skill levels and lowercase tags keep values stable before they are saved.
-const LEVELS = [1, 2, 3, 4, 5];
+const SKILL_GROUPS = [
+  { label: "Languages", skills: ["Bash", "C", "C++", "C#", "CSS", "Dart", "Elixir", "Go", "HTML", "Haskell", "Java", "JavaScript", "Kotlin", "Lua", "Makefile", "Objective-C", "Perl", "PHP", "Python", "R", "Ruby", "Rust", "Scala", "Shell", "SQL", "Swift", "TypeScript"] },
+  { label: "Frontend", skills: ["Accessibility", "Angular", "React", "Svelte", "UI/UX", "Vue"] },
+  { label: "Backend & data", skills: ["Django", "FastAPI", "GraphQL", "Machine Learning", "MongoDB", "Node.js", "PostgreSQL", "REST APIs", "SQLite"] },
+  { label: "Tools", skills: ["AWS", "Docker", "Git", "Linux"] },
+] as const;
+const LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"] as const;
 const norm = (s: string) => s.trim().toLowerCase();
+
+function levelLabel(value: number): (typeof LEVELS)[number] | null {
+  if (value < 1) return null;
+  if (value < 2) return LEVELS[0];
+  if (value < 3) return LEVELS[1];
+  if (value < 4) return LEVELS[2];
+  return LEVELS[3];
+}
 
 export function Chip({ children, shared, onRemove }: { children: ReactNode; shared?: boolean; onRemove?: () => void }) {
   return (
@@ -14,29 +27,50 @@ export function Chip({ children, shared, onRemove }: { children: ReactNode; shar
   );
 }
 
-export function SkillEditor({ label, value, onChange, placeholder }: {
-  label: string; value: Skills; onChange: (s: Skills) => void; placeholder: string;
+export function SkillEditor({ label, value, onChange }: {
+  label: string; value: Skills; onChange: (s: Skills) => void;
 }) {
-  // Local draft state keeps the form responsive without forcing the parent to re-render on every keystroke.
-  const [name, setName] = useState("");
-  const [level, setLevel] = useState(3);
-  const add = () => { const n = norm(name); if (n) { onChange({ ...value, [n]: level }); setName(""); } };
+  const cycle = (skill: string) => {
+    const key = norm(skill);
+    const existingKey = Object.keys(value).find((name) => norm(name) === key);
+    const current = existingKey ? value[existingKey] : 0;
+    const next = Object.fromEntries(
+      Object.entries(value).filter(([name]) => norm(name) !== key),
+    );
+    if (current < 1) next[key] = 1;
+    else if (current < LEVELS.length) next[key] = Math.floor(current) + 1;
+    onChange(next);
+  };
+
   return (
-    <div>
-      <label>{label}</label>
-      <div className="add-row">
-        <input type="text" value={name} placeholder={placeholder} onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-        <select aria-label="Level" value={level} onChange={(e) => setLevel(Number(e.target.value))}>
-          {LEVELS.map((n) => <option key={n}>{n}</option>)}
-        </select>
-        <button type="button" onClick={add}>Add</button>
-      </div>
-      <ul className="chips">
-        {Object.entries(value).map(([k, v]) => (
-          <Chip key={k} onRemove={() => { const { [k]: _, ...rest } = value; onChange(rest); }}>{`${k} ${v}`}</Chip>
+    <div role="group" aria-label={label}>
+      <p className="skill-editor-label">{label}</p>
+      <div className="skill-groups">
+        {SKILL_GROUPS.map((group) => (
+          <fieldset className="skill-group" key={group.label}>
+            <legend>{group.label}</legend>
+            <div className="skill-options">
+              {group.skills.map((skill) => {
+                const current = value[norm(skill)] ?? 0;
+                const level = levelLabel(current);
+                return (
+                  <button
+                    className={`skill-option${level ? " selected" : ""}`}
+                    type="button"
+                    key={skill}
+                    aria-label={`${skill}: ${level ?? "not selected"}. Click to change proficiency.`}
+                    aria-pressed={level !== null}
+                    onClick={() => cycle(skill)}
+                  >
+                    <span>{skill}</span>
+                    {level && <span className="skill-level">{level}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

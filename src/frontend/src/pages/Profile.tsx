@@ -25,7 +25,7 @@ export default function Profile() {
       <Notice error={error} info={info} />
       <label htmlFor="name">Name</label>
       <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
-      <SkillEditor label="Skills and your level (1 to 5)" value={skills} onChange={setSkills} placeholder="e.g. python" />
+      <SkillEditor label="Choose your skills and proficiency" value={skills} onChange={setSkills} />
       <TagEditor label="Interests" value={interests} onChange={setInterests} placeholder="e.g. data" />
       <button type="button" className="block" onClick={save}>Save profile</button>
     </section>
