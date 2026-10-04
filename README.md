@@ -95,8 +95,14 @@ The feed excludes the signed-in contributor's own projects and any project on
 which they already swiped. It sorts by descending score and then ascending
 project ID, so ties are deterministic. The UI lets contributors search project
 names, descriptions, tags, and required skills; filter by minimum score; and
-sort alphabetically or by match score. Score breakdown bars display only the
-signals that were actually available.
+sort alphabetically or by match score. Refresh reloads recommendations without
+resetting the current filters. Score breakdown bars display only the signals
+that were actually available.
+
+The interface includes light and dark themes. The theme switch is available
+from the sign-in screen and the main navigation, follows the device preference
+on first visit, and remembers the user's selection in local browser storage.
+Motion respects the operating system's reduced-motion preference.
 
 ## Applications
 

@@ -6,6 +6,7 @@ import MyProjects from "./pages/MyProjects";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import { Login, AuthCallback } from "./pages/Login";
+import { ThemeToggle } from "./theme";
 
 function Shell() {
   const { me, ready, signOut } = useAuth();
@@ -22,6 +23,7 @@ function Shell() {
           <NavLink to="/applications">Applications</NavLink>
           <NavLink to="/profile">Profile</NavLink>
         </nav>
+        <ThemeToggle />
         <div className="who">
           {me.avatar_url && <img src={me.avatar_url} alt="" width={28} height={28} />}
           <span>{me.login}</span>

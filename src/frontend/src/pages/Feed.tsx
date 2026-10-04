@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, json, safeUrl, type FeedProject, type Project, type SwipeAction } from "../api";
 import { useAuth } from "../auth";
 import { Chip, Meter, Notice, msg } from "../components";
@@ -41,8 +41,21 @@ export default function Feed() {
   const [minimumMatch, setMinimumMatch] = useState(0);
   const [sortBy, setSortBy] = useState<"match" | "title">("match");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { api<FeedProject[]>("/feed").then(setItems).catch((e) => setError(msg(e))); }, []);
+  const loadFeed = useCallback(async () => {
+    setRefreshing(true);
+    setError("");
+    try {
+      setItems(await api<FeedProject[]>("/feed"));
+    } catch (e) {
+      setError(msg(e));
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadFeed(); }, [loadFeed]);
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -71,7 +84,14 @@ export default function Feed() {
     <section className="column">
       <div className="section-heading">
         <div><p className="eyebrow">A good place to start</p><h1>Find your next project</h1></div>
-        <span className="result-count">{visibleItems.length} matches</span>
+        <div className="feed-heading-actions">
+          <span className="result-count">{visibleItems.length} matches</span>
+          <button type="button" className="secondary refresh-button" onClick={() => void loadFeed()}
+            disabled={refreshing} aria-label="Refresh project recommendations">
+            <span aria-hidden="true" className={refreshing ? "refresh-icon spinning" : "refresh-icon"}>↻</span>
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
       <Notice error={error} info={info} />
       <div className="feed-tools" aria-label="Filter projects">
@@ -98,6 +118,7 @@ export default function Feed() {
         </label>
       </div>
       {items === null && !error && <p className="empty">Loading…</p>}
+      {items === null && error && <div className="empty-card"><h2>Recommendations could not load</h2><p>Check your connection and try again.</p><button type="button" onClick={() => void loadFeed()}>Try again</button></div>}
       {items?.length === 0 && <div className="empty-card"><h2>Room to make a difference</h2><p>There are no new projects right now. Pitch a project of your own, or come back soon.</p></div>}
       {items && items.length > 0 && visibleItems.length === 0 && <p className="empty">No projects match those filters. Try a broader search.</p>}
       <ol className="posts">

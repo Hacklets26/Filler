@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth";
 import { Notice, msg } from "../components";
+import { ThemeToggle } from "../theme";
 
 export function Login() {
   const { me, ready, loginUrl } = useAuth();
@@ -9,7 +10,10 @@ export function Login() {
   return (
     <main className="login-layout">
       <section className="login-copy">
-        <NavLink to="/login" className="brand login-brand">Patchwork</NavLink>
+        <div className="login-brand-row">
+          <NavLink to="/login" className="brand login-brand">Patchwork</NavLink>
+          <ThemeToggle />
+        </div>
         <p className="eyebrow">Good work grows together</p>
         <h1>Your next open-source chapter starts here.</h1>
         <p>Meet projects that need your skills, and maintainers who are glad you showed up.</p>
