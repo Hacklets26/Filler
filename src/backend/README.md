@@ -12,6 +12,17 @@ python -m pip install -r requirements-dev.txt
 python src/backend/app.py
 ```
 
+When the deployment's working directory is the backend folder, run the same
+entry point there:
+
+```bash
+python app.py
+```
+
+The launcher loads the backend package relative to its own file, so it works
+both from the repository root and when the backend folder is the deployment
+root.
+
 The server listens on `http://localhost:30007`. The launcher finds the backend
 package relative to its own file, so the project layout (including
 `src/backend/main.py`, the router modules, and the other backend modules) must be
