@@ -1,4 +1,4 @@
-export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "http://localhost:30007";
+export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "https://patchwork.millered001.workers.dev";
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const TOKEN_KEY = "FILLER.token";
 
