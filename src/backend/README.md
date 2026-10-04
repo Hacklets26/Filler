@@ -20,7 +20,7 @@ For the public deployment, configure:
 
 - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from the GitHub OAuth app.
 - `PUBLIC_API_URL=https://backend.ifamished.com`.
-- `FRONTEND_URL=https://patchwork.millered001.workers.dev`.
+- `FRONTEND_URL=https://patchwork.hacklets.dev`.
 - A unique `JWT_SECRET` with at least 32 random characters.
 
 Register `https://backend.ifamished.com/auth/github/callback` as the GitHub
