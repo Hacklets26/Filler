@@ -1,5 +1,8 @@
 __pycache__/
 *.db
+*.sqlite
+*.sqlite3
+src/backend/FILLER.db
 src/backend/videos/
 src/frontend/node_modules/
 src/frontend/dist/

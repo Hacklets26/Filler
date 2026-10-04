@@ -1,7 +1,10 @@
 """Public package interface for the FILLER FastAPI backend."""
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 __all__ = ["app", "run"]
+
+if TYPE_CHECKING:
+    from .main import app, run
 
 
 def __getattr__(name: str) -> Any:
