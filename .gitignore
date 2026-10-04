@@ -1,0 +1,6 @@
+__pycache__/
+*.db
+src/backend/videos/
+src/frontend/node_modules/
+src/frontend/dist/
+.env

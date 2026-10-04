@@ -4,24 +4,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
-from .routers import developer, feed, project, swipe
+from .routers import auth, developer, feed, project, swipe
 from .storage import VIDEO_DIRECTORY
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="GitTok API")
+app = FastAPI(title="FILLER API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=False,  # auth uses a bearer token, not cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(developer.router)
-app.include_router(project.router)
-app.include_router(swipe.router)
-app.include_router(feed.router)
+for module in (auth, developer, project, swipe, feed):
+    app.include_router(module.router)
 app.mount("/videos", StaticFiles(directory=VIDEO_DIRECTORY), name="videos")
 
 
