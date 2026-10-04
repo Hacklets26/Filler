@@ -33,7 +33,7 @@ export function SkillEditor({ label, value, onChange }: {
   const cycle = (skill: string) => {
     const key = norm(skill);
     const existingKey = Object.keys(value).find((name) => norm(name) === key);
-    const current = existingKey ? value[existingKey] : 0;
+    const current = existingKey ? value[existingKey] ?? 0 : 0;
     const next = Object.fromEntries(
       Object.entries(value).filter(([name]) => norm(name) !== key),
     );
