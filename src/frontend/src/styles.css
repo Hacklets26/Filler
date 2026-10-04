@@ -11,6 +11,10 @@
   --green-dark: #17573f;
   --mint: #e8f4ec;
   --gold: #e9bd68;
+  --skill-beginner: #27845a;
+  --skill-intermediate: #d6a400;
+  --skill-advanced: #e97a22;
+  --skill-expert: #d94a4a;
   --danger: #ad3941;
   --chip: #f8f8f4;
   --bar-track: #e9ece7;
@@ -208,12 +212,18 @@ button.block { width: 100%; margin-top: 1.5rem; }
 .skill-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); gap: .4rem; }
 button.skill-option { min-height: 42px; align-items: center; justify-content: space-between; gap: .4rem; padding: .4rem .55rem; border-color: var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: .78rem; font-weight: 700; text-align: left; transition: background .18s, border-color .18s, color .18s; }
 button.skill-option:hover:not(:disabled) { border-color: var(--green); background: var(--mint); color: var(--green-dark); box-shadow: none; transform: none; }
-button.skill-option[data-level="beginner"] { --skill-color: #27845a; }
-button.skill-option[data-level="intermediate"] { --skill-color: #d6a400; }
-button.skill-option[data-level="advanced"] { --skill-color: #e97a22; }
-button.skill-option[data-level="expert"] { --skill-color: #d94a4a; }
+button.skill-option[data-level="beginner"] { --skill-color: var(--skill-beginner); }
+button.skill-option[data-level="intermediate"] { --skill-color: var(--skill-intermediate); }
+button.skill-option[data-level="advanced"] { --skill-color: var(--skill-advanced); }
+button.skill-option[data-level="expert"] { --skill-color: var(--skill-expert); }
 button.skill-option.selected { border-color: var(--skill-color); background: color-mix(in srgb, var(--skill-color) 12%, var(--card)); }
 button.skill-option.selected::after { width: .65rem; height: .65rem; flex: none; border-radius: 50%; background: var(--skill-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--skill-color) 18%, var(--card)); content: ""; }
+.chip.skill-chip { border-color: var(--skill-color); background: color-mix(in srgb, var(--skill-color) 12%, var(--card)); color: var(--skill-color); font-weight: 700; }
+.chip.skill-chip[data-level="beginner"] { --skill-color: var(--skill-beginner); }
+.chip.skill-chip[data-level="intermediate"] { --skill-color: var(--skill-intermediate); }
+.chip.skill-chip[data-level="advanced"] { --skill-color: var(--skill-advanced); }
+.chip.skill-chip[data-level="expert"] { --skill-color: var(--skill-expert); }
+.chip.skill-chip::before { width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--skill-color); content: ""; }
 
 .form, .post, .application-card {
   border: 1px solid var(--surface-border);

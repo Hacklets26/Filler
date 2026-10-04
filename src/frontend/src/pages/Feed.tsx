@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, json, safeUrl, type FeedProject, type Project, type SwipeAction } from "../api";
 import { useAuth } from "../auth";
-import { Chip, Meter, Notice, msg } from "../components";
+import { Chip, getSkillLabel, Meter, Notice, msg } from "../components";
 
 type ProjectBodyData = FeedProject | (Project & Partial<Pick<
   FeedProject, "match_score" | "skill_fit" | "interest_fit" | "text_fit"
@@ -23,7 +23,15 @@ export function ProjectBody({ p }: { p: ProjectBodyData }) {
       {repo && <p><a href={repo} target="_blank" rel="noopener noreferrer">View repository</a></p>}
       {video && <video src={video} controls preload="metadata" />}
       <ul className="chips">
-        {Object.entries(p.needs).map(([k, v]) => <Chip key={k} shared={(mine[k] ?? 0) >= v}>{`${k} ${v}`}</Chip>)}
+        {Object.entries(p.needs).map(([name, level]) => {
+          const label = getSkillLabel(name);
+          if (!label) return null;
+          return (
+            <Chip key={name} shared={(mine[name] ?? 0) >= level} skillLevel={level}>
+              {label}
+            </Chip>
+          );
+        })}
         {p.tags.map((t) => <Chip key={t} shared={interests.has(t)}>{t}</Chip>)}
       </ul>
       {p.match_score !== undefined && (

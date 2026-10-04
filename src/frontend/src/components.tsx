@@ -9,8 +9,13 @@ const SKILL_GROUPS = [
 ] as const;
 const LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"] as const;
 const norm = (s: string) => s.trim().toLowerCase();
+const SKILL_LABELS = new Map(SKILL_GROUPS.flatMap((group) => group.skills.map((skill) => [norm(skill), skill] as const)));
 
-function levelLabel(value: number): (typeof LEVELS)[number] | null {
+export function getSkillLabel(name: string): string | undefined {
+  return SKILL_LABELS.get(norm(name));
+}
+
+export function getSkillLevelLabel(value: number): (typeof LEVELS)[number] | null {
   if (value < 1) return null;
   if (value < 2) return LEVELS[0];
   if (value < 3) return LEVELS[1];
@@ -18,9 +23,16 @@ function levelLabel(value: number): (typeof LEVELS)[number] | null {
   return LEVELS[3];
 }
 
-export function Chip({ children, shared, onRemove }: { children: ReactNode; shared?: boolean; onRemove?: () => void }) {
+export function Chip({ children, shared, skillLevel, onRemove }: {
+  children: ReactNode; shared?: boolean; skillLevel?: number; onRemove?: () => void;
+}) {
+  const level = skillLevel === undefined ? null : getSkillLevelLabel(skillLevel);
   return (
-    <li className={shared ? "chip shared" : "chip"}>
+    <li
+      className={`chip${shared ? " shared" : ""}${skillLevel === undefined ? "" : " skill-chip"}`}
+      data-level={level?.toLowerCase()}
+      aria-label={level ? `${String(children)}: ${level}` : undefined}
+    >
       {children}
       {onRemove && <button type="button" aria-label={`Remove ${String(children)}`} onClick={onRemove}>×</button>}
     </li>
@@ -52,7 +64,7 @@ export function SkillEditor({ label, value, onChange }: {
             <div className="skill-options">
               {group.skills.map((skill) => {
                 const current = value[norm(skill)] ?? 0;
-                const level = levelLabel(current);
+                const level = getSkillLevelLabel(current);
                 return (
                   <button
                     className={`skill-option${level ? " selected" : ""}`}
