@@ -113,7 +113,7 @@ export default function Feed() {
           <span>Sort by</span>
           <select value={sortBy} onChange={(event) => setSortBy(event.target.value as "match" | "title")}>
             <option value="match">Best match</option>
-            <option value="title">Project name</option>
+            <option value="title">Alphabetical</option>
           </select>
         </label>
       </div>
