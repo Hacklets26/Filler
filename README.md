@@ -2,7 +2,7 @@
 
 Patchwork connects open-source maintainers with contributors who have the skills
 and interests their projects need. Sign in with GitHub, discover ranked projects,
-apply with one click, and review incoming applications from your own pitches.
+show interest in a project, and review responses to your pitches.
 
 ## Run locally
 
@@ -104,12 +104,13 @@ from the sign-in screen and the main navigation, follows the device preference
 on first visit, and remembers the user's selection in local browser storage.
 Motion respects the operating system's reduced-motion preference.
 
-## Applications
+## Expressions of interest
 
-Applying creates a pending application. Contributors can track applications in
-**Applications**; maintainers see incoming applicants there and can accept or
-decline. Only a project's maintainer can change an application's status. Pass
-records a skip and removes the project from the feed. There is no like action.
+Choosing **Show interest** sends an expression of interest. Contributors can
+track their expressions in **Applications**; maintainers see who is interested
+in their projects and can accept or decline. Only a project's maintainer can
+change a response's status. **Pass** removes the project from the feed. There
+is no like action.
 
 ## Video pitches
 

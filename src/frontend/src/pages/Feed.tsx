@@ -75,7 +75,7 @@ export default function Feed() {
     try {
       await api("/swipe", json("POST", { project_id: p.id, action }));
       setItems((cur) => cur?.filter((x) => x.id !== p.id) ?? null);
-      setInfo(action === "APPLY" ? `Application sent for ${p.title}. Track it in Applications.` : "");
+      setInfo(action === "APPLY" ? `You showed interest in ${p.title}. Track it in Your interest.` : "");
     } catch (e) { setError(msg(e)); setInfo(""); }
     finally { setBusyId(null); }
   }
@@ -128,7 +128,7 @@ export default function Feed() {
             <div className="actions">
               <button type="button" className="secondary" disabled={busyId !== null} onClick={() => swipe(p, "SKIP")}>Pass</button>
               <button type="button" disabled={busyId !== null} onClick={() => swipe(p, "APPLY")}>
-                {busyId === p.id ? "Sending…" : "Apply to project"}
+                {busyId === p.id ? "Sending…" : "Show interest"}
               </button>
             </div>
           </li>

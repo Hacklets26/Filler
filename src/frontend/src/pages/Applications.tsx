@@ -50,13 +50,13 @@ export default function Applications() {
   return (
     <section className="column applications-page">
       <div className="section-heading">
-        <div><p className="eyebrow">Keep the conversation moving</p><h1>Applications</h1></div>
+        <div><p className="eyebrow">Keep the conversation moving</p><h1>Your interest</h1></div>
       </div>
       <Notice error={error} info={info} />
 
       <section className="application-section">
-        <div className="subheading"><h2>From your team</h2><span>{received?.length ?? "—"}</span></div>
-        {received?.length === 0 && <p className="empty">Applications to your project pitches will appear here.</p>}
+        <div className="subheading"><h2>People interested in your projects</h2><span>{received?.length ?? "—"}</span></div>
+        {received?.length === 0 && <p className="empty">When someone shows interest in one of your projects, they will appear here.</p>}
         <ol className="application-list">
           {received?.map((application) => (
             <li className="application-card" key={application.application_id}>
@@ -85,8 +85,8 @@ export default function Applications() {
       </section>
 
       <section className="application-section">
-        <div className="subheading"><h2>Sent by you</h2><span>{sent?.length ?? "—"}</span></div>
-        {sent?.length === 0 && <p className="empty">When you apply to a project, you can follow its status here.</p>}
+        <div className="subheading"><h2>Projects you are interested in</h2><span>{sent?.length ?? "—"}</span></div>
+        {sent?.length === 0 && <p className="empty">Projects you show interest in will appear here, along with their status.</p>}
         <ol className="application-list">
           {sent?.map((application) => (
             <li className="application-card" key={application.application_id}>

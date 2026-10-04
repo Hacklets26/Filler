@@ -20,7 +20,7 @@ function Shell() {
           <NavLink to="/" end>Feed</NavLink>
           <NavLink to="/pitch">Pitch a project</NavLink>
           <NavLink to="/projects">My projects</NavLink>
-          <NavLink to="/applications">Applications</NavLink>
+          <NavLink to="/applications">Your interest</NavLink>
           <NavLink to="/profile">Profile</NavLink>
         </nav>
         <ThemeToggle />
