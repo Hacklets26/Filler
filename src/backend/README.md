@@ -1,6 +1,6 @@
-# GitTok backend
+# FILLER backend
 
-GitTok is a FastAPI service for developer profiles, project pitches, swipes,
+FILLER is a FastAPI service for developer profiles, project pitches, swipes,
 matching, personalized feeds, and MP4 video uploads.
 
 ## Requirements
@@ -40,15 +40,15 @@ is at [`http://localhost:30007/openapi.json`](http://localhost:30007/openapi.jso
 
 ## Configuration and storage
 
-- By default, SQLite data is stored in `src/backend/gittok.db`.
+- By default, SQLite data is stored in `src/backend/FILLER.db`.
 - Set `DATABASE_URL` to use a different SQLAlchemy database URL. For example:
 
   ```bash
   # Linux/macOS
-  export DATABASE_URL=sqlite:///./gittok.db
+  export DATABASE_URL=sqlite:///./FILLER.db
 
   # PowerShell
-  $env:DATABASE_URL = "sqlite:///./gittok.db"
+  $env:DATABASE_URL = "sqlite:///./FILLER.db"
   ```
 
 - Uploaded videos are stored in `src/backend/videos/` and served publicly under
