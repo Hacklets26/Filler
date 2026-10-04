@@ -123,6 +123,7 @@ h2 { font-size: 1.3rem; line-height: 1.25; letter-spacing: -.035em; }
 }
 .theme-toggle:hover:not(:disabled) { border-color: var(--green); background: var(--mint); color: var(--ink); box-shadow: none; }
 .theme-icon { color: var(--green); font-size: 1.1rem; line-height: 1; }
+.theme-icon svg { display: block; width: 1.1rem; height: 1.1rem; }
 
 .page { width: min(100% - 2rem, 1080px); margin: 0 auto; padding: 3rem 0 5rem; }
 .column { min-width: 0; }

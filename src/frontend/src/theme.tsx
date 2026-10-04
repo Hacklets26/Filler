@@ -51,7 +51,14 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       title={`Switch to ${nextTheme} mode`}
       aria-pressed={theme === "dark"}
     >
-      <span aria-hidden="true" className="theme-icon">{theme === "light" ? "☾" : "☀"}</span>
+      <span aria-hidden="true" className="theme-icon">
+        {theme === "light" ? "☾" : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3.5" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+          </svg>
+        )}
+      </span>
       <span className="theme-label">{theme === "light" ? "Dark mode" : "Light mode"}</span>
     </button>
   );
