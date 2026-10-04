@@ -57,8 +57,10 @@ export function TagEditor({ label, value, onChange, placeholder }: {
   );
 }
 
-/** Two bars that show *why* a project ranked where it did. */
-export function Meter({ skill, interest }: { skill: number; interest: number }) {
+/** Bars make the available ranking signals transparent. */
+export function Meter({ skill, interest, text }: {
+  skill: number | null; interest: number | null; text: number | null;
+}) {
   const row = (name: string, v: number) => (
     <div className="meter-row">
       <span>{name}</span>
@@ -68,7 +70,13 @@ export function Meter({ skill, interest }: { skill: number; interest: number }) 
       <b>{Math.round(v * 100)}%</b>
     </div>
   );
-  return <div className="meter">{row("Skills you have", skill)}{row("Shared interests", interest)}</div>;
+  return (
+    <div className="meter">
+      {skill !== null && row("Skill fit", skill)}
+      {interest !== null && row("Interest fit", interest)}
+      {text !== null && row("Project relevance", text)}
+    </div>
+  );
 }
 
 export const Notice = ({ error, info }: { error?: string; info?: string }) =>

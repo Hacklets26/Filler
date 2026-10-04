@@ -9,7 +9,7 @@ from .storage import VIDEO_DIRECTORY
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="FILLER API")
+app = FastAPI(title="Patchwork API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

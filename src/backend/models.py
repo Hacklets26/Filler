@@ -1,4 +1,6 @@
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -38,3 +40,12 @@ class Swipe(Base):
     developer_id: Mapped[int] = mapped_column(ForeignKey("developers.id"), nullable=False, index=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
     action: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class ApplicationReview(Base):
+    __tablename__ = "application_reviews"
+
+    swipe_id: Mapped[int] = mapped_column(ForeignKey("swipes.id"), primary_key=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("developers.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

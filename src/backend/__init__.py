@@ -1,4 +1,4 @@
-"""Public package interface for the FILLER FastAPI backend."""
+"""Public package interface for the Patchwork FastAPI backend."""
 from typing import TYPE_CHECKING, Any
 
 __all__ = ["app", "run"]

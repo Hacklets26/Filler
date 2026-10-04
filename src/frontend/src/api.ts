@@ -1,6 +1,8 @@
-export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "https://backend.ifamished.com";
+export const API_BASE: string = import.meta.env.DEV
+  ? import.meta.env.VITE_API_BASE ?? "http://localhost:30007"
+  : "https://backend.ifamished.com";
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-const TOKEN_KEY = "FILLER.token";
+const TOKEN_KEY = "PATCHWORK.token";
 
 export type Skills = Record<string, number>;
 export interface Developer { id: number; login: string; name: string; avatar_url: string | null; skills: Skills; interests: string[] }
@@ -8,9 +10,18 @@ export interface Project {
   id: number; title: string; description: string | null; repo_url: string; video_url: string | null;
   needs: Skills; tags: string[]; maintainer_id: number;
 }
-export interface FeedProject extends Project { match_score: number; skill_fit: number; interest_fit: number }
+export interface FeedProject extends Project {
+  match_score: number; skill_fit: number | null; interest_fit: number | null; text_fit: number | null;
+}
+export type ApplicationStatus = "pending" | "accepted" | "declined";
+export interface Application {
+  application_id: number;
+  status: ApplicationStatus;
+  developer: Developer;
+  project: Project;
+}
 export interface RepoInfo { repo_url: string; title: string; description: string | null; needs: Skills; tags: string[]; stars: number }
-export type SwipeAction = "LIKE" | "SKIP" | "APPLY";
+export type SwipeAction = "SKIP" | "APPLY";
 export type ProjectInput = Omit<Project, "id" | "maintainer_id">;
 
 export class ApiError extends Error {
@@ -35,7 +46,7 @@ export async function api<T = void>(path: string, init: RequestInit = {}): Promi
       const body = await res.json();
       detail = typeof body.detail === "string" ? body.detail : body.detail?.[0]?.msg ?? detail;
     } catch { /* keep statusText */ }
-    if (res.status === 401) window.dispatchEvent(new Event("FILLER:unauthorized"));
+    if (res.status === 401) window.dispatchEvent(new Event("PATCHWORK:unauthorized"));
     throw new ApiError(res.status, detail.replace(/^Value error, /, ""));
   }
   return res.status === 204 ? (undefined as T) : res.json();

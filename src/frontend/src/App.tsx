@@ -14,7 +14,7 @@ function Shell() {
   return (
     <>
       <header className="topbar">
-        <NavLink to="/" className="brand">FILLER</NavLink>
+        <NavLink to="/" className="brand">Patchwork</NavLink>
         <nav aria-label="Main">
           <NavLink to="/" end>Feed</NavLink>
           <NavLink to="/pitch">Pitch a project</NavLink>

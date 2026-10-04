@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_developer
 from ..config import MAX_VIDEO_BYTES
 from ..database import get_db
-from ..models import Developer, Project, Swipe
+from ..models import ApplicationReview, Developer, Project, Swipe
 from ..repos import inspect_repo
 from ..schemas import ProjectCreate, ProjectRead, ProjectUpdate, RepoInspect, VideoUploadRead
 from ..storage import VIDEO_DIRECTORY, delete_video_file
@@ -68,6 +68,13 @@ def delete_project(project_id: int, me: Developer = Depends(current_developer),
                    database: Session = Depends(get_db)):
     project = _owned(database, project_id, me)
     delete_video_file(project.video_url)
+    database.execute(
+        delete(ApplicationReview).where(
+            ApplicationReview.swipe_id.in_(
+                select(Swipe.id).where(Swipe.project_id == project.id)
+            )
+        )
+    )
     database.execute(delete(Swipe).where(Swipe.project_id == project.id))
     database.delete(project)
     database.commit()

@@ -1,194 +1,52 @@
-# FILLER backend
+# Patchwork backend
 
-FILLER is a FastAPI service for GitHub sign-in, developer profiles, project
-pitches, personalized feeds, applications, and MP4 uploads.
+Patchwork's FastAPI service handles GitHub OAuth, contributor profiles, project
+pitches, recommendations, and application review.
 
-## Install and run
+## Deploy and run
 
-From the repository root:
-
-```bash
-python -m pip install -r requirements-dev.txt
-python src/backend/app.py
-```
-
-When the deployment's working directory is the backend folder, run the same
-entry point there:
+The backend folder is a supported deployment root. Install from its dependency
+manifest and launch it there:
 
 ```bash
+python -m pip install -r requirements.txt
 python app.py
 ```
 
-The launcher loads the backend package relative to its own file, so it works
-both from the repository root and when the backend folder is the deployment
-root.
+The same launcher works from the repository root as `python src/backend/app.py`.
+It loads the Python package relative to its own file.
 
-The server listens on `http://localhost:30007`. The launcher finds the backend
-package relative to its own file, so the project layout (including
-`src/backend/main.py`, the router modules, and the other backend modules) must be
-available when starting it. Running an isolated copy of `app.py` without those
-modules is not sufficient to start the API.
+For the public deployment, configure:
 
-Alternatively, run Uvicorn directly from the repository root:
+- `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from the GitHub OAuth app.
+- `PUBLIC_API_URL=https://backend.ifamished.com`.
+- `FRONTEND_URL=https://patchwork.millered001.workers.dev`.
+- A unique `JWT_SECRET` with at least 32 random characters.
 
-```bash
-uvicorn src.backend.main:app --reload
-```
+Register `https://backend.ifamished.com/auth/github/callback` as the GitHub
+OAuth callback URL. The service refuses to start an OAuth redirect when either
+GitHub credential is missing.
 
-Interactive API documentation is available at
-[`http://localhost:30007/docs`](http://localhost:30007/docs); the OpenAPI schema
-is at [`http://localhost:30007/openapi.json`](http://localhost:30007/openapi.json).
+The backend dependency manifest installs **PyJWT**, which provides the
+`jwt.encode` and `jwt.decode` APIs used by login. The similarly named `jwt`
+PyPI distribution is a different package and must not be installed in its
+place.
 
-## Configuration and storage
+## Persistence and application routes
 
-- By default, SQLite data is stored in `src/backend/FILLER.db`.
-- Set `DATABASE_URL` to use a different SQLAlchemy database URL. For example:
+When `DATABASE_URL` is not set, Python creates `patchwork.db` in the backend
+directory using the SQLAlchemy models. Database files are ignored by Git.
+Set `DATABASE_URL` to use another SQLAlchemy-supported database.
 
-  ```bash
-  # Linux/macOS
-  export DATABASE_URL=sqlite:///./FILLER.db
+Applications are created from `APPLY` swipes with initial `pending` status.
+`GET /me/applications` lists the signed-in contributor's applications;
+`GET /me/incoming-applications` lists applications to their projects. A
+maintainer can set status to `accepted` or `declined` with
+`PUT /applications/{application_id}`. Only the project maintainer may review
+an application. Older `APPLY` swipes without a review row appear as pending.
 
-  # PowerShell
-  $env:DATABASE_URL = "sqlite:///./FILLER.db"
-  ```
+## Recommendation scoring
 
-- Uploaded videos are stored in `src/backend/videos/` and served publicly under
-  `/videos/{stored_filename}`. The upload response provides the full URL.
-- CORS allows any origin, method, and header. Credentialed CORS requests are
-  disabled.
-
-## API
-
-All request and response bodies are JSON unless noted otherwise. Replace
-`localhost:30007` with the deployed service URL when calling a remote server.
-
-### Developers
-
-Create a profile:
-
-```http
-POST /developer
-Content-Type: application/json
-```
-
-```json
-{
-  "name": "Ada",
-  "skills": {"python": 3, "sql": 2},
-  "interests": ["data", "open source"]
-}
-```
-
-`skills`, `interests`, and `swipe_history` default to empty objects/lists.
-Successful creation returns `201 Created` and includes the new `id`.
-
-- `GET /developer/{developer_id}` retrieves a profile.
-- `PUT /developer/{developer_id}` updates profile fields. Supply any fields to
-  update; omitted fields retain their current values. For example:
-
-  ```json
-  {"skills": {"python": 4}, "interests": ["data"]}
-  ```
-
-### Projects
-
-Create a pitch (the `maintainer_id` must be an existing developer):
-
-```http
-POST /project
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "Data Garden",
-  "repo_url": "https://github.com/example/data-garden",
-  "video_url": "http://localhost:30007/videos/your-upload.mp4",
-  "needs": {"python": 3, "sql": 1},
-  "tags": ["data", "open source"],
-  "maintainer_id": 1
-}
-```
-
-`video_url`, `needs`, and `tags` can be omitted; their defaults are `null`, an
-empty object, and an empty list respectively.
-
-- `GET /project/{project_id}` retrieves one project.
-- `GET /projects` lists all projects.
-
-### Upload a pitch video
-
-Send a multipart form upload with the field name `file`. Only filenames ending
-in `.mp4` are accepted.
-
-```bash
-curl -F "file=@pitch.mp4" http://localhost:30007/upload_video
-```
-
-The response contains a public `video_url`, for example:
-
-```json
-{"video_url": "http://localhost:30007/videos/2d9e...c31.mp4"}
-```
-
-Use that URL as `video_url` when creating the project. The video can then be
-retrieved with `GET /videos/{stored_filename}`.
-
-### Swipes and matches
-
-Record a swipe:
-
-```http
-POST /swipe
-Content-Type: application/json
-```
-
-```json
-{"developer_id": 1, "project_id": 2, "action": "APPLY"}
-```
-
-`action` must be `LIKE`, `SKIP`, or `APPLY`. A developer can record only one
-swipe per project; subsequent attempts return `409 Conflict`. Recording a swipe
-also adds the project ID to that developer's `swipe_history`.
-
-After an `APPLY`, retrieve the associated developer and project:
-
-```http
-POST /match
-Content-Type: application/json
-```
-
-```json
-{"developer_id": 1, "project_id": 2}
-```
-
-The endpoint returns both objects. It returns `409 Conflict` if no `APPLY` has
-been recorded for that developer and project.
-
-### Personalized feed
-
-```http
-GET /feed/{developer_id}
-```
-
-The response is a list of project objects, each with a `match_score` from `0`
-to `1`, sorted from highest to lowest score. Projects in `swipe_history` are
-excluded.
-
-The score is calculated by averaging the skill contributions for the project's
-requirements: a developer skill at or above the requested level contributes
-`+1.0`, a positive skill below the requested level contributes `+0.5`, and a
-missing skill contributes `-0.2`. This average is clamped to `[0, 1]`. If one
-or more project tags match developer interests, `0.2` is added, with the final
-score capped at `1`. A project with no skill requirements starts with a skill
-score of `0`.
-
-## Error responses
-
-Typical errors include:
-
-- `404 Not Found` when a developer, project, or maintainer does not exist.
-- `409 Conflict` for duplicate swipes or for requesting a match without an
-  `APPLY`.
-- `415 Unsupported Media Type` when the uploaded filename is not an MP4.
-- `422 Unprocessable Entity` for invalid request data.
+See [the root README's matching section](../../README.md#matching-and-recommendations)
+for the complete formula, signal weights, missing-data handling, text matching,
+and deterministic feed ordering.

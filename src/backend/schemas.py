@@ -110,8 +110,9 @@ class ProjectRead(ORMModel):
 
 class FeedProject(ProjectRead):
     match_score: float
-    skill_fit: float
-    interest_fit: float
+    skill_fit: float | None
+    interest_fit: float | None
+    text_fit: float | None
 
 
 class RepoInspect(BaseModel):
@@ -124,7 +125,6 @@ class RepoInspect(BaseModel):
 
 
 class SwipeAction(str, Enum):
-    LIKE = "LIKE"
     SKIP = "SKIP"
     APPLY = "APPLY"
 
@@ -139,6 +139,28 @@ class SwipeRead(ORMModel):
     developer_id: int
     project_id: int
     action: SwipeAction
+
+
+class ApplicationStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+
+
+class ApplicationDecisionStatus(str, Enum):
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+
+
+class ApplicationDecision(BaseModel):
+    status: ApplicationDecisionStatus
+
+
+class ApplicationRead(BaseModel):
+    application_id: int
+    status: ApplicationStatus
+    developer: DeveloperRead
+    project: ProjectRead
 
 
 class MatchRequest(BaseModel):

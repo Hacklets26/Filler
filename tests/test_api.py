@@ -68,6 +68,20 @@ def test_github_login_requires_client_secret(monkeypatch):
     assert client.get("/auth/github/login").status_code == 503
 
 
+def test_github_login_reports_conflicting_jwt_package(monkeypatch):
+    import src.backend.auth as backend_auth
+    import src.backend.routers.auth as auth_router
+
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_ID", "test-client")
+    monkeypatch.setattr(auth_router, "GITHUB_CLIENT_SECRET", "test-secret")
+    monkeypatch.setattr(backend_auth.jwt, "encode", None)
+
+    response = client.get("/auth/github/login")
+
+    assert response.status_code == 503
+    assert "uninstall the conflicting 'jwt' package" in response.json()["detail"]
+
+
 def test_github_callback_redirects_to_frontend(monkeypatch):
     import src.backend.routers.auth as auth_router
 
@@ -132,6 +146,37 @@ def test_github_callback_redirects_to_frontend(monkeypatch):
     assert auth_router.read_token(callback_params["token"][0])
 
 
+def test_match_uses_only_available_signals_and_weights_skill_demand():
+    from src.backend.matching import explain_match
+    from src.backend.models import Project
+
+    developer = Developer(
+        github_id=5, login="ada", name="Ada", skills={"Python": 5}, interests=[],
+    )
+    project = Project(
+        title="Garden", description="A small project", repo_url="https://github.com/o/garden",
+        needs={"python": 5, "sql": 1}, tags=[], maintainer_id=8,
+    )
+
+    result = explain_match(developer, project)
+
+    assert result == {
+        "match_score": 0.6667,
+        "skill_fit": 0.8333,
+        "interest_fit": None,
+        "text_fit": 0,
+    }
+
+    project.needs = {}
+    developer.skills = {}
+    assert explain_match(developer, project) == {
+        "match_score": 0.5,
+        "skill_fit": None,
+        "interest_fit": None,
+        "text_fit": None,
+    }
+
+
 def mock_transport(request: httpx.Request) -> httpx.Response:
     u = str(request.url)
     if u.endswith("/repos/o/good"):
@@ -174,23 +219,35 @@ def test_flow():
     pid = p.json()["id"]
 
     f = client.get("/feed", headers=a).json()
-    # skill_fit = (4/4 + 2/2)/2 + ... alice has python 4, no sql => (1+0)/2 = .5 ; interest 1/2 => .5*.75+.5*.25
-    assert f[0]["skill_fit"] == 0.5 and f[0]["interest_fit"] == 0.5 and f[0]["match_score"] == 0.5
+    assert f[0]["skill_fit"] == 0.6667
+    assert f[0]["interest_fit"] == 0.5
+    assert f[0]["text_fit"] == 0
+    assert f[0]["match_score"] == 0.525
     assert client.get("/feed", headers=b).json() == []  # own project hidden
 
     assert client.post("/swipe", json={"project_id": pid, "action": "APPLY"}, headers=b).status_code == 400
     assert client.post("/swipe", json={"project_id": pid, "action": "APPLY"}, headers=a).status_code == 201
-    assert client.post("/swipe", json={"project_id": pid, "action": "LIKE"}, headers=a).status_code == 409
+    assert client.post("/swipe", json={"project_id": pid, "action": "LIKE"}, headers=a).status_code == 422
     assert client.get("/feed", headers=a).json() == []
-    assert [x["id"] for x in client.get("/me/applications", headers=a).json()] == [pid]
-    assert client.post("/match", json={"developer_id": aid, "project_id": pid}, headers=b).status_code == 200
+    sent = client.get("/me/applications", headers=a).json()
+    assert len(sent) == 1 and sent[0]["project"]["id"] == pid and sent[0]["status"] == "pending"
+    incoming = client.get("/me/incoming-applications", headers=b).json()
+    assert len(incoming) == 1 and incoming[0]["developer"]["login"] == "alice"
+    assert incoming[0]["status"] == "pending"
     c, _ = user(3, "carol")
+    assert client.put(f"/applications/{sent[0]['application_id']}", json={"status": "accepted"}, headers=c).status_code == 403
+    assert client.put(f"/applications/{sent[0]['application_id']}", json={"status": "accepted"}, headers=b).status_code == 200
+    assert client.get("/me/applications", headers=a).json()[0]["status"] == "accepted"
+    assert client.post("/match", json={"developer_id": aid, "project_id": pid}, headers=b).status_code == 200
     assert client.post("/match", json={"developer_id": aid, "project_id": pid}, headers=c).status_code == 403
 
     assert client.put(f"/project/{pid}", json={"title": "X"}, headers=a).status_code == 403
     assert client.delete(f"/project/{pid}", headers=a).status_code == 403
     assert client.put(f"/project/{pid}", json={"title": "Better", "needs": {"go": 2}}, headers=b).json()["needs"] == {"go": 2}
     assert client.delete(f"/project/{pid}", headers=b).status_code == 204
+    from src.backend.models import ApplicationReview
+    with SessionLocal() as database:
+        assert database.get(ApplicationReview, sent[0]["application_id"]) is None
     assert client.get(f"/project/{pid}").status_code == 404
     assert client.get("/me/applications", headers=a).json() == []
 

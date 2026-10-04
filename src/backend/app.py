@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 backend_root = Path(__file__).resolve().parent
-package_name = "_filler_backend"
+package_name = "_patchwork_backend"
 spec = importlib.util.spec_from_file_location(
     package_name,
     backend_root / "__init__.py",

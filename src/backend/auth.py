@@ -12,11 +12,22 @@ from .models import Developer
 _bearer = HTTPBearer(auto_error=False)
 
 
+def _ensure_pyjwt() -> None:
+    if not callable(getattr(jwt, "encode", None)) or not callable(getattr(jwt, "decode", None)):
+        raise HTTPException(
+            503,
+            "JWT support is unavailable: uninstall the conflicting 'jwt' package, "
+            "install PyJWT from requirements.txt, and restart the backend.",
+        )
+
+
 def make_token(subject: str, purpose: str = "session", ttl: int = 7 * 86400) -> str:
+    _ensure_pyjwt()
     return jwt.encode({"sub": subject, "purpose": purpose, "exp": int(time.time()) + ttl}, JWT_SECRET, "HS256")
 
 
 def read_token(token: str, purpose: str = "session") -> str:
+    _ensure_pyjwt()
     try:
         data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.PyJWTError as exc:

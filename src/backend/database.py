@@ -10,7 +10,11 @@ class Base(DeclarativeBase):
     pass
 
 
-DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "FILLER.db"
+BACKEND_DIRECTORY = Path(__file__).resolve().parent
+DEFAULT_DATABASE_PATH = BACKEND_DIRECTORY / "patchwork.db"
+LEGACY_DATABASE_PATH = BACKEND_DIRECTORY / "FILLER.db"
+if not DEFAULT_DATABASE_PATH.exists() and LEGACY_DATABASE_PATH.exists():
+    DEFAULT_DATABASE_PATH = LEGACY_DATABASE_PATH
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DATABASE_PATH.as_posix()}")
 
 engine = create_engine(

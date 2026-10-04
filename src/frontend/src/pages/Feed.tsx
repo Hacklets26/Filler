@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
-import { api, json, safeUrl, type FeedProject, type SwipeAction } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { api, json, safeUrl, type FeedProject, type Project, type SwipeAction } from "../api";
 import { useAuth } from "../auth";
 import { Chip, Meter, Notice, msg } from "../components";
 
-export function ProjectBody({ p }: { p: FeedProject | (Omit<FeedProject, "match_score" | "skill_fit" | "interest_fit"> & Partial<FeedProject>) }) {
+type ProjectBodyData = FeedProject | (Project & Partial<Pick<
+  FeedProject, "match_score" | "skill_fit" | "interest_fit" | "text_fit"
+>>);
+
+export function ProjectBody({ p }: { p: ProjectBodyData }) {
   const { me } = useAuth();
   const mine = me?.skills ?? {};
   const interests = new Set(me?.interests ?? []);
@@ -22,7 +26,9 @@ export function ProjectBody({ p }: { p: FeedProject | (Omit<FeedProject, "match_
         {Object.entries(p.needs).map(([k, v]) => <Chip key={k} shared={(mine[k] ?? 0) >= v}>{`${k} ${v}`}</Chip>)}
         {p.tags.map((t) => <Chip key={t} shared={interests.has(t)}>{t}</Chip>)}
       </ul>
-      {p.skill_fit !== undefined && p.interest_fit !== undefined && <Meter skill={p.skill_fit} interest={p.interest_fit} />}
+      {p.match_score !== undefined && (
+        <Meter skill={p.skill_fit ?? null} interest={p.interest_fit ?? null} text={p.text_fit ?? null} />
+      )}
     </>
   );
 }
@@ -31,31 +37,78 @@ export default function Feed() {
   const [items, setItems] = useState<FeedProject[] | null>(null);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [search, setSearch] = useState("");
+  const [minimumMatch, setMinimumMatch] = useState(0);
+  const [sortBy, setSortBy] = useState<"match" | "title">("match");
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   useEffect(() => { api<FeedProject[]>("/feed").then(setItems).catch((e) => setError(msg(e))); }, []);
 
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return [...(items ?? [])]
+      .filter((project) => project.match_score >= minimumMatch)
+      .filter((project) => !query || [
+        project.title, project.description ?? "", project.repo_url,
+        ...project.tags, ...Object.keys(project.needs),
+      ].some((value) => value.toLocaleLowerCase().includes(query)))
+      .sort((a, b) => sortBy === "match"
+        ? b.match_score - a.match_score || a.id - b.id
+        : a.title.localeCompare(b.title));
+  }, [items, minimumMatch, search, sortBy]);
+
   async function swipe(p: FeedProject, action: SwipeAction) {
+    setBusyId(p.id); setError("");
     try {
       await api("/swipe", json("POST", { project_id: p.id, action }));
       setItems((cur) => cur?.filter((x) => x.id !== p.id) ?? null);
-      setError(""); setInfo(action === "APPLY" ? `Applied to ${p.title}.` : "");
-    } catch (e) { setError(msg(e)); }
+      setInfo(action === "APPLY" ? `Application sent for ${p.title}. Track it in Applications.` : "");
+    } catch (e) { setError(msg(e)); setInfo(""); }
+    finally { setBusyId(null); }
   }
 
   return (
     <section className="column">
-      <h2>Projects for you</h2>
+      <div className="section-heading">
+        <div><p className="eyebrow">A good place to start</p><h1>Find your next project</h1></div>
+        <span className="result-count">{visibleItems.length} matches</span>
+      </div>
       <Notice error={error} info={info} />
+      <div className="feed-tools" aria-label="Filter projects">
+        <label className="search-field">
+          <span>Search</span>
+          <input type="search" value={search} placeholder="Try Python, data, or a project name"
+            onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <label>
+          <span>Minimum match</span>
+          <select value={minimumMatch} onChange={(event) => setMinimumMatch(Number(event.target.value))}>
+            <option value={0}>Any fit</option>
+            <option value={0.5}>50% and up</option>
+            <option value={0.7}>70% and up</option>
+            <option value={0.85}>85% and up</option>
+          </select>
+        </label>
+        <label>
+          <span>Sort by</span>
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value as "match" | "title")}>
+            <option value="match">Best match</option>
+            <option value="title">Project name</option>
+          </select>
+        </label>
+      </div>
       {items === null && !error && <p className="empty">Loading…</p>}
-      {items?.length === 0 && <p className="empty">You've seen every project. Pitch your own, or check back soon.</p>}
+      {items?.length === 0 && <div className="empty-card"><h2>Room to make a difference</h2><p>There are no new projects right now. Pitch a project of your own, or come back soon.</p></div>}
+      {items && items.length > 0 && visibleItems.length === 0 && <p className="empty">No projects match those filters. Try a broader search.</p>}
       <ol className="posts">
-        {items?.map((p) => (
+        {visibleItems.map((p) => (
           <li className="post" key={p.id}>
             <ProjectBody p={p} />
             <div className="actions">
-              <button type="button" className="secondary" onClick={() => swipe(p, "SKIP")}>Skip</button>
-              <button type="button" className="secondary" onClick={() => swipe(p, "LIKE")}>Like</button>
-              <button type="button" onClick={() => swipe(p, "APPLY")}>Apply</button>
+              <button type="button" className="secondary" disabled={busyId !== null} onClick={() => swipe(p, "SKIP")}>Pass</button>
+              <button type="button" disabled={busyId !== null} onClick={() => swipe(p, "APPLY")}>
+                {busyId === p.id ? "Sending…" : "Apply to project"}
+              </button>
             </div>
           </li>
         ))}

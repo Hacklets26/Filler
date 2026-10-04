@@ -21,8 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (getToken()) { try { setMe(await api<Developer>("/me")); } catch { setToken(null); } }
       setReady(true);
     })();
-    window.addEventListener("FILLER:unauthorized", signOut);
-    return () => window.removeEventListener("FILLER:unauthorized", signOut);
+    window.addEventListener("PATCHWORK:unauthorized", signOut);
+    return () => window.removeEventListener("PATCHWORK:unauthorized", signOut);
   }, [signOut]);
 
   return <Ctx.Provider value={{ me, ready, signIn, signOut, setMe, loginUrl: `${API_BASE}/auth/github/login` }}>{children}</Ctx.Provider>;
